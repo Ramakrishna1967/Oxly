@@ -1,4 +1,4 @@
-# Oxly Overview (Phase 3)
+# Oxly Overview (Phase 4)
 
 Oxly is trace / span observability for AI agents, exposed to assistants
 through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
@@ -17,16 +17,17 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
 
 ## Tools
 
-- `whoami(api_key)` — confirm which project a key is scoped to.
+- `whoami(api_key, project_id?)` — confirm which project a key is scoped to.
   Start here when unsure which key you hold.
 - `query_traces(api_key, project_id?, status?, limit?=20, offset?=0)` —
   list traces newest-first with `span_count` (limit max 50).
-- `get_trace(trace_id, api_key)` — full trace with spans in replay
+  `status` in `OK | ERROR` (anything else fails with `unknown status '...'`).
+- `get_trace(trace_id, api_key, project_id?)` — full trace with spans in replay
   order (max 200 spans, `spans_truncated` flag when capped).
-- `get_span(span_id, api_key)` — one span: timing, status, service,
+- `get_span(span_id, api_key, project_id?)` — one span: timing, status, service,
   attributes, events.
-- `query_security_alerts(api_key, project_id?, severity?, limit?=25)` —
-  prompt-injection / PII / anomaly alerts, newest first.
+- `query_security_alerts(api_key, project_id?, severity?, limit?=25, offset?=0)` —
+  prompt-injection / PII / anomaly alerts, newest first (limit max 100).
   `severity` in `low | medium | high | critical` (limit max 100).
 - `cost_summary(api_key, project_id?, interval?=day, start_date?, end_date?)` —
   total cost/tokens, per-model breakdown, and timeseries.
@@ -55,4 +56,13 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
 - `unknown project` — bad `api_key` or mismatched `project_id`.
 - `unknown trace` / `unknown span` — id not found *or* not in the key's
   project (no cross-project oracle).
-- `unknown severity|interval '...'` — with the valid values listed.
+- `unknown severity|interval|status '...'` — with the valid values listed.
+
+## Phase 4 notes
+
+- Pagination: `query_traces` and `query_security_alerts` accept `offset`;
+  clamp `limit` server-side (50 traces, 100 alerts).
+- `get_trace` / `get_span` / `whoami` accept optional `project_id` that
+  must match the key's project (same `unknown project` contract).
+- MCP shares the API 100 req/min per-IP limiter; back off on 429.
+- Dashboard deep links: `/traces/{trace_id}`, `/analytics` (same origin).

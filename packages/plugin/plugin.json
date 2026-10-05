@@ -2,13 +2,13 @@
   "name": "oxly",
   "version": "0.1.0-alpha",
   "displayName": "Oxly — Chrome DevTools for AI Agents",
-  "description": "Trace, cost, and security observability for AI agents. Phase 3: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI.",
-  "phase": 3,
+  "description": "Trace, cost, and security observability for AI agents. Phase 4: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI + submission-ready manifests.",
+  "phase": 4,
   "mcp": {
     "endpoint": "/mcp",
     "transport": "streamable-http",
     "version": "2025-06-18",
-    "note": "Phase 3 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok."
+    "note": "Phase 4 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok. query_traces validates status OK/ERROR; query_security_alerts supports limit/offset; get_trace/get_span/whoami accept optional project_id that must match."
   },
   "ui": {
     "devPath": "/plugin/ui",
@@ -22,5 +22,15 @@
   },
   "skills": ["oxly-overview", "trace-debug", "security-triage", "cost-report"],
   "wellKnown": "/.well-known/oxly-plugin.json",
+  "legacyWellKnown": "/.well-known/ai-plugin.json",
+  "openapi": "/plugin/openapi.json",
+  "legal": {
+    "privacy_policy_url": "https://github.com/oxly/oxly/blob/main/SECURITY.md",
+    "terms_url": "https://github.com/oxly/oxly/blob/main/LICENSE",
+    "note": "Placeholder links until the hosted docs site ships; submission reviewers follow these URLs."
+  },
+  "rateLimits": {
+    "note": "MCP shares the API 100 req/min per-IP limiter; tools clamp limit/offset server-side."
+  },
   "homepage": "https://github.com/oxly/oxly"
 }

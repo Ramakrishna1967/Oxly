@@ -348,16 +348,17 @@ This entire flow — register, login, create project, send a trace, and read it 
 
 <br>
 
-## ChatGPT / MCP Plugin (Phase 3)
+## ChatGPT / MCP Plugin (Phase 4)
 
 Oxly exposes 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP):
 
 `query_traces` · `get_trace` · `get_span` · `query_security_alerts` · `cost_summary` · `whoami`
 
 - **Auth:** pass the project `ak_...` key (from `POST /api/v1/projects`) as `api_key` on every call. An optional `project_id` must match the key's project, otherwise the tool fails with `unknown project` (bad key and wrong project are indistinguishable by design). `DEMO_MODE=true` allows keyless calls with an explicit `project_id` for local exploration.
-- **Try it:** MCP Inspector → `http://localhost:8000/mcp` → `initialize` ok → `tools/list` → 6 tools. Manifest at `/plugin/plugin.json` (also `/.well-known/oxly-plugin.json`), client config at `/plugin/mcp.json`, status UI at `/plugin/ui/`.
+- **Try it:** MCP Inspector → `http://localhost:8000/mcp` → `initialize` ok → `tools/list` → 6 tools. Manifest at `/plugin/plugin.json` (also `/.well-known/oxly-plugin.json` + legacy `/.well-known/ai-plugin.json`), discovery doc at `/plugin/openapi.json`, client config at `/plugin/mcp.json`, status UI at `/plugin/ui/`.
 - **Skills:** `oxly-overview` (tool index) · `trace-debug` (failing-run workflow) · `security-triage` (alert queue) · `cost-report` (spend + timeseries) under `packages/plugin/skills/`.
-- **Verify:** `pytest packages/api/tests/test_mcp_phase3.py` (skill pack + manifest + UI) and `test_mcp_phase2.py` (scoping + cross-project isolation) and `test_mcp_phase0.py` (shell + endpoint). See `packages/plugin/README.md` and `packages/plugin/skills/oxly-overview/SKILL.md` for tool reference.
+- **Phase 4 consistency:** `query_traces(status)` validates `OK | ERROR`; `query_security_alerts` pages with `limit`/`offset`; `get_trace` / `get_span` / `whoami` accept optional matching `project_id`.
+- **Verify:** `pytest packages/api/tests/test_mcp_phase4.py` (shell + consistency) and `test_mcp_phase3.py` (skill pack + manifest + UI) and `test_mcp_phase2.py` (scoping + cross-project isolation) and `test_mcp_phase0.py` (shell + endpoint). See `packages/plugin/README.md` and `packages/plugin/skills/oxly-overview/SKILL.md` for tool reference.
 
 <br>
 

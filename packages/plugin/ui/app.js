@@ -1,4 +1,4 @@
-// Phase 3 status UI. Pings same-origin health + manifest (dev serves both).
+// Phase 4 status UI. Pings same-origin health + manifest + openapi (dev serves all).
 function setText(id, value) {
   var el = document.getElementById(id);
   if (el) el.textContent = value;
@@ -26,4 +26,40 @@ fetch("/plugin/plugin.json")
   })
   .catch(function (e) {
     setText("manifest", "unreachable (" + e.message + ")");
+  });
+
+fetch("/plugin/openapi.json")
+  .then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  })
+  .then(function (j) {
+    setText("openapi", j.openapi + " (" + j.info.title + ")");
+  })
+  .catch(function (e) {
+    setText("openapi", "unreachable (" + e.message + ")");
+  });
+
+// Live MCP check: initialize handshake only (no tools/list POST from browser
+// to keep the UI read-only and CSP-safe). Reports endpoint reachability.
+fetch("/mcp", {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+  body: JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "plugin-ui", version: "4" },
+    },
+  }),
+})
+  .then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    setText("mcp-live", "reachable (initialize ok)");
+  })
+  .catch(function (e) {
+    setText("mcp-live", "unreachable (" + e.message + ")");
   });

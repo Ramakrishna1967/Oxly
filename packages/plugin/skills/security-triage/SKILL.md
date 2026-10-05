@@ -1,4 +1,4 @@
-# Security Triage (Phase 3)
+# Security Triage (Phase 4)
 
 Triage prompt-injection, PII, and anomaly alerts using Oxly's project-scoped,
 read-only MCP tools at `/mcp`. Auth: pass the project's SDK API key
@@ -8,13 +8,13 @@ project are indistinguishable by design).
 
 ## Tool chain
 
-1. `query_security_alerts(api_key, project_id?, severity?, limit?=25)` —
-   alerts newest-first (limit max 100).
+1. `query_security_alerts(api_key, project_id?, severity?, limit?=25, offset?=0)` —
+   alerts newest-first (limit max 100, `offset` for paging).
    `severity` in `low | medium | high | critical` (case-insensitive;
    anything else fails with `unknown severity '...'` listing valid values).
-2. `get_span(span_id, api_key)` — inspect the flagged span's `attributes`
+2. `get_span(span_id, api_key, project_id?)` — inspect the flagged span's `attributes`
    and `events` for the injected prompt or leaked PII.
-3. `get_trace(trace_id, api_key)` — surrounding spans in replay order to see
+3. `get_trace(trace_id, api_key, project_id?)` — surrounding spans in replay order to see
    which LLM call consumed the tainted input and what followed.
 
 ## Alert shape

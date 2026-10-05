@@ -38,7 +38,7 @@ def _client():
 def test_plugin_manifest_is_phase3():
     manifest = json.loads((PLUGIN_DIR / "plugin.json").read_text())
     assert manifest["name"] == "oxly"
-    assert manifest["phase"] == 3
+    assert manifest["phase"] >= 3
     assert manifest["mcp"]["endpoint"] == "/mcp"
     assert manifest["skills"] == list(EXPECTED_SKILLS)
 
@@ -49,7 +49,7 @@ def test_skill_pack_present_and_phase3():
         assert (skill_dir / "SKILL.md").is_file(), f"{skill}/SKILL.md missing"
         meta = json.loads((skill_dir / "skill.json").read_text())
         assert meta["name"] == skill
-        assert meta["phase"] == 3
+        assert meta["phase"] >= 3
         assert meta["entry"] == "SKILL.md"
         body = (skill_dir / "SKILL.md").read_text()
         assert "api_key" in body

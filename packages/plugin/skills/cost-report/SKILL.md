@@ -1,4 +1,4 @@
-# Cost Report (Phase 3)
+# Cost Report (Phase 4)
 
 Summarise spend and token usage using Oxly's project-scoped, read-only MCP
 tools at `/mcp`. Auth: pass the project's SDK API key (`ak_...`) as `api_key`

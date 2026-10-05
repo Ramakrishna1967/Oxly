@@ -6,9 +6,7 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -18,7 +16,7 @@ from httpx import ASGITransport, AsyncClient
 # Add src directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from api.db import Database, get_db
+from api.db import Database
 
 # Use a temp database for tests
 _test_db_path = None
@@ -37,6 +35,7 @@ def event_loop():
 def reset_db():
     """Reset the global database singleton between tests."""
     import api.db as db_module
+
     db_module._db = None
     yield
     db_module._db = None
@@ -60,6 +59,7 @@ async def app(test_db):
     db_module._db = test_db
 
     from api.main import create_app
+
     test_app = create_app()
     return test_app
 

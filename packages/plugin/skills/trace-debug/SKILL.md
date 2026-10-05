@@ -1,4 +1,4 @@
-# Trace Debug (Phase 3)
+# Trace Debug (Phase 4)
 
 Debug a failing agent run using Oxly's project-scoped, read-only MCP tools
 at `/mcp` (Streamable HTTP). Auth is identical on every call: pass the
@@ -13,11 +13,12 @@ an explicit `project_id` for local exploration only.
    Start here when unsure which key you hold.
 2. `query_traces(api_key, project_id?, status?, limit?=20, offset?=0)` —
    list traces newest-first with `span_count` (limit max 50).
-   Use `status="ERROR"` to isolate failing runs.
-3. `get_trace(trace_id, api_key)` — full trace with spans in replay order
+   Use `status="ERROR"` to isolate failing runs (anything else fails with
+   `unknown status '...'` listing `OK | ERROR`).
+3. `get_trace(trace_id, api_key, project_id?)` — full trace with spans in replay order
    (max 200 spans; `spans_truncated=true` when capped — fall back to
    `query_traces` + targeted `get_span` calls for the remainder).
-4. `get_span(span_id, api_key)` — one span: timing (`start_time`/`end_time`
+4. `get_span(span_id, api_key, project_id?)` — one span: timing (`start_time`/`end_time`
    are nanoseconds, `duration_ms` derived), `status`, `service_name`,
    `attributes` (model, tokens), `events`.
 

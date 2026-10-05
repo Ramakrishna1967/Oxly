@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Phase 4 plugin hardening: `plugin.json` phase 4 with `legal`/`openapi`/`rateLimits` metadata, legacy `/.well-known/ai-plugin.json` alias, `/plugin/openapi.json` discovery doc, status UI with live MCP `initialize` check + dashboard deep links
+- MCP consistency: `query_traces(status)` validates `OK | ERROR`, `query_security_alerts` gains `offset` paging, `get_trace`/`get_span`/`whoami` accept optional matching `project_id` (mismatch -> `unknown project`)
 - Single-process architecture: ingestion, cost/security/storage pipeline, REST, WebSocket, and dashboard static hosting folded into `packages/api` (SQLite + in-process `asyncio.Queue`); Redis/ClickHouse/collector/workers removed
 - ChatGPT plugin shell (`packages/plugin/`): canonical `plugin.json` served at
   `/plugin/plugin.json` + `/.well-known/oxly-plugin.json`, MCP client config at

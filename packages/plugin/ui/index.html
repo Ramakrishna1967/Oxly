@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Oxly Plugin — Phase 3</title>
+    <title>Oxly Plugin — Phase 4</title>
     <link rel="stylesheet" href="./styles.css" />
     <!--
       Production: this directory is hosted at the stable HTTPS origin
@@ -14,7 +14,7 @@
   </head>
   <body>
     <main>
-      <h1>Oxly Plugin — Phase 3</h1>
+      <h1>Oxly Plugin — Phase 4</h1>
       <p>
         MCP endpoint: <code id="mcp">/mcp</code> (Streamable HTTP, 6
         project-scoped read-only tools).
@@ -29,6 +29,7 @@
           <li><code>query_security_alerts</code> — prompt-injection / PII / anomaly alerts</li>
           <li><code>cost_summary</code> — per-model cost + token timeseries</li>
         </ul>
+        <p>MCP live: <code id="mcp-live">checking…</code></p>
       </section>
       <section aria-label="Auth model">
         <h2>Auth</h2>
@@ -49,10 +50,18 @@
           <li><code>cost-report</code> — spend workflow</li>
         </ul>
       </section>
+      <section aria-label="Dashboard">
+        <h2>Dashboard</h2>
+        <p>
+          Open traces in the dashboard: <code>/traces/{trace_id}</code> and
+          analytics at <code>/analytics</code> (same origin, same port).
+        </p>
+      </section>
       <section aria-label="Live status">
         <h2>Status</h2>
         <p>API health: <code id="health">checking…</code></p>
         <p>Manifest: <code id="manifest">checking…</code></p>
+        <p>OpenAPI: <code id="openapi">checking…</code></p>
         <p>
           Verify: MCP Inspector → <code>http://localhost:8000/mcp</code> →
           <code>initialize</code> ok → <code>tools/list</code> → 6 tools.

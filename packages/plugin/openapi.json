@@ -1,0 +1,27 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Oxly Plugin",
+    "version": "0.1.0-alpha",
+    "description": "Phase 4 discovery doc: Oxly MCP lives at /mcp (Streamable HTTP, protocol 2025-06-18) with 6 project-scoped read-only tools. REST auth stays on JWT; MCP auth uses the project ak_... key per tool call."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/mcp": {
+      "post": {
+        "summary": "MCP Streamable HTTP endpoint",
+        "description": "JSON-RPC: initialize, notifications/initialized, tools/list (6 tools), tools/call. Pass api_key (ak_...) on every call; optional project_id must match.",
+        "responses": { "200": { "description": "JSON-RPC response or SSE stream" } }
+      }
+    },
+    "/plugin/plugin.json": {
+      "get": { "summary": "Canonical plugin manifest", "responses": { "200": { "description": "plugin.json" } } }
+    },
+    "/plugin/mcp.json": {
+      "get": { "summary": "MCP client config", "responses": { "200": { "description": "mcp.json" } } }
+    },
+    "/api/v1/health": {
+      "get": { "summary": "API health", "responses": { "200": { "description": "{status, services:{api,sqlite,queue,retention}}" } } }
+    }
+  }
+}

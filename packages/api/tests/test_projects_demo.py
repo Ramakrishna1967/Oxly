@@ -58,9 +58,7 @@ class TestDemoModeProjects:
 
     @pytest.mark.asyncio
     async def test_create_project_no_auth(self, demo_client):
-        response = await demo_client.post(
-            "/api/v1/projects", json={"name": "demo-proj"}
-        )
+        response = await demo_client.post("/api/v1/projects", json={"name": "demo-proj"})
         assert response.status_code == 200
         data = response.json()
         assert data["project"]["name"] == "demo-proj"
@@ -68,9 +66,7 @@ class TestDemoModeProjects:
 
     @pytest.mark.asyncio
     async def test_created_project_visible_in_list_and_detail(self, demo_client):
-        created = await demo_client.post(
-            "/api/v1/projects", json={"name": "demo-proj"}
-        )
+        created = await demo_client.post("/api/v1/projects", json={"name": "demo-proj"})
         project_id = created.json()["project"]["id"]
 
         listed = await demo_client.get("/api/v1/projects")

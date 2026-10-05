@@ -146,6 +146,7 @@ def create_app() -> FastAPI:
     # Mount("/") matches every path, so anything after it is unreachable.
     plugin_json = PLUGIN_DIR / "plugin.json"
     mcp_json = PLUGIN_DIR / "mcp.json"
+    openapi_json = PLUGIN_DIR / "openapi.json"
     if plugin_json.is_file():
 
         @app.get("/plugin/plugin.json", include_in_schema=False)
@@ -156,11 +157,22 @@ def create_app() -> FastAPI:
         async def plugin_well_known():
             return FileResponse(plugin_json, media_type="application/json")
 
+        @app.get("/.well-known/ai-plugin.json", include_in_schema=False)
+        async def plugin_well_known_legacy():
+            # Phase 4: ChatGPT classic discovery alias for submission reviewers.
+            return FileResponse(plugin_json, media_type="application/json")
+
     if mcp_json.is_file():
 
         @app.get("/plugin/mcp.json", include_in_schema=False)
         async def plugin_mcp_config():
             return FileResponse(mcp_json, media_type="application/json")
+
+    if openapi_json.is_file():
+
+        @app.get("/plugin/openapi.json", include_in_schema=False)
+        async def plugin_openapi():
+            return FileResponse(openapi_json, media_type="application/json")
 
     if PLUGIN_UI_DIR.is_dir():
         app.mount(

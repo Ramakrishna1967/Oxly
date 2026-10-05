@@ -1,7 +1,7 @@
 # Copyright 2026 Oxly Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Oxly MCP server (Phase 2: project-scoped observability tools).
+"""Oxly MCP server (Phase 4: production-ready project-scoped tools).
 
 Exposes a Streamable HTTP MCP endpoint with read-only observability tools:
 
@@ -78,6 +78,7 @@ except Exception as exc:  # pragma: no cover - import-time guard for minimal env
 
 _VALID_SEVERITIES = ("low", "medium", "high", "critical")
 _VALID_INTERVALS = ("hour", "day", "week")
+_VALID_STATUSES = ("OK", "ERROR")
 
 
 def _fail(message: str) -> NoReturn:
@@ -197,7 +198,13 @@ def _time_bucket_expr(interval: str) -> str:
 
 
 def build_mcp_server() -> MCPServer:
-    """Build a fresh Oxly MCPServer with the Phase 2 read-only toolset.
+    """Build a fresh Oxly MCPServer with the Phase 4 read-only toolset.
+
+    Phase 4 keeps the 6 Phase-2 tools with consistent pagination/filtering:
+    ``query_traces`` validates ``status`` (OK/ERROR) and clamps limit/offset;
+    ``query_security_alerts`` gains ``offset`` for queue paging; ``get_trace``,
+    ``get_span`` and ``whoami`` accept an optional ``project_id`` that must
+    match the key's project (same no-oracle ``unknown project`` contract).
 
     A fresh instance per FastAPI app is required because
     ``StreamableHTTPSessionManager.run()`` can only be entered once per
@@ -235,8 +242,11 @@ def build_mcp_server() -> MCPServer:
         filters = ["t.project_id = ?"]
         params: list[Any] = [scope]
         if status:
+            st = status.strip().upper()
+            if st not in _VALID_STATUSES:
+                _fail(f"unknown status '{status}': use one of {', '.join(_VALID_STATUSES)}")
             filters.append("t.status = ?")
-            params.append(status)
+            params.append(st)
         where_sql = f"WHERE {' AND '.join(filters)}"
         # where_sql uses only static fragments; values are bound via params.
         count_sql = f"SELECT COUNT(*) FROM traces t {where_sql}"  # nosec B608
@@ -277,9 +287,12 @@ def build_mcp_server() -> MCPServer:
         return {"project_id": scope, "total": total, "traces": items}
 
     @server.tool()
-    async def get_trace(trace_id: str, api_key: str) -> dict:
+    async def get_trace(trace_id: str, api_key: str, project_id: str | None = None) -> dict:
         """Get one trace with all its spans ordered by start time (replay order)."""
         key = _require_api_key(api_key)
+        scope: str | None = None
+        if project_id is not None:
+            scope = await _resolve_scope(api_key, project_id)
         db = get_database()
         conn = await db.get_connection()
         try:
@@ -291,7 +304,10 @@ def build_mcp_server() -> MCPServer:
             if not rows:
                 _fail("unknown trace")
             trace_project = rows[0]["project_id"]
-            if key:
+            if scope is not None:
+                if trace_project != scope:
+                    _fail("unknown trace")
+            elif key:
                 key_project = await _project_id_for_key(key)
                 if trace_project != key_project:
                     _fail("unknown trace")
@@ -317,9 +333,12 @@ def build_mcp_server() -> MCPServer:
         }
 
     @server.tool()
-    async def get_span(span_id: str, api_key: str) -> dict:
+    async def get_span(span_id: str, api_key: str, project_id: str | None = None) -> dict:
         """Get a single span by id (arguments, timing, status, events)."""
         key = _require_api_key(api_key)
+        scope: str | None = None
+        if project_id is not None:
+            scope = await _resolve_scope(api_key, project_id)
         db = get_database()
         conn = await db.get_connection()
         try:
@@ -327,7 +346,10 @@ def build_mcp_server() -> MCPServer:
                 row = await cursor.fetchone()
             if row is None:
                 _fail("unknown span")
-            if key:
+            if scope is not None:
+                if row["project_id"] != scope:
+                    _fail("unknown span")
+            elif key:
                 key_project = await _project_id_for_key(key)
                 if row["project_id"] != key_project:
                     _fail("unknown span")
@@ -343,10 +365,12 @@ def build_mcp_server() -> MCPServer:
         project_id: str | None = None,
         severity: str | None = None,
         limit: int = 25,
+        offset: int = 0,
     ) -> dict:
         """List security alerts (prompt injection, PII, anomaly), newest first."""
         scope = await _resolve_scope(api_key, project_id)
         limit = max(1, min(limit, 100))
+        offset = max(0, offset)
         filters = ["project_id = ?"]
         params: list[Any] = [scope]
         if severity:
@@ -360,14 +384,14 @@ def build_mcp_server() -> MCPServer:
         alerts_sql = (  # nosec B608
             "SELECT id, trace_id, span_id, project_id, severity,"
             " rule_name AS alert_type, message, metadata, created_at"
-            f" FROM security_alerts {where_sql} ORDER BY created_at DESC LIMIT ?"
+            f" FROM security_alerts {where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?"
         )
         db = get_database()
         conn = await db.get_connection()
         try:
             async with conn.execute(
                 alerts_sql,
-                params + [limit],
+                params + [limit, offset],
             ) as cursor:
                 rows = await cursor.fetchall()
         finally:
@@ -485,12 +509,15 @@ def build_mcp_server() -> MCPServer:
         }
 
     @server.tool()
-    async def whoami(api_key: str) -> dict:
+    async def whoami(api_key: str, project_id: str | None = None) -> dict:
         """Confirm which project an API key is scoped to (id, name, created_at)."""
         key = _require_api_key(api_key)
         if not key:
             _fail("project_id is required when no api_key is given")
-        project_id = await _project_id_for_key(key)
+        project_id_resolved = await _project_id_for_key(key)
+        if project_id is not None and project_id != project_id_resolved:
+            _fail("unknown project")
+        project_id = project_id_resolved
         db = get_database()
         conn = await db.get_connection()
         try:
@@ -521,4 +548,4 @@ mcp = build_mcp_server()
 # host lifespan in main.py. Default path "/mcp" + Mount("/", ...) => /mcp.
 mcp_app = mcp.streamable_http_app()
 
-logger.info("Oxly MCP initialised (Phase 2: 6 project-scoped read-only tools)")
+logger.info("Oxly MCP initialised (Phase 4: 6 project-scoped read-only tools)")
