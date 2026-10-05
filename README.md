@@ -273,7 +273,7 @@ cd Oxly
 pip install -e packages/api
 ```
 
-Set the required environment variables. `DATABASE_URL` must point at an **absolute path** — the unset default resolves to a hardcoded `/app/oxly.db`, which only exists inside the Docker image (see [Known Follow-ups](#known-follow-ups) below). The scheme prefix is `sqlite+aiosqlite:///` followed directly by your absolute path — on Windows that means no extra leading slash (the drive letter is the anchor); on Linux/Mac your path already starts with `/`, so it ends up looking like four slashes total:
+Set the required environment variables. `DATABASE_URL` must point at an **absolute path**. The scheme prefix is `sqlite+aiosqlite:///` followed directly by your absolute path — on Windows that means no extra leading slash (the drive letter is the anchor); on Linux/Mac your path already starts with `/`, so it ends up looking like four slashes total:
 
 ```bash
 # Windows
@@ -328,7 +328,7 @@ curl -X POST http://localhost:8000/api/v1/projects \
 
 The response includes an `api_key` (shown once) — this is what you pass to `oxly.init(api_key=...)`.
 
-> Prefer to skip auth entirely for local exploration? Set `DEMO_MODE=true` — every read endpoint (traces, security alerts, analytics) works without a token. It does **not** currently work for creating new projects; see [Follow-ups](#known-follow-ups).
+> Prefer to skip auth entirely for local exploration? Set `DEMO_MODE=true` — every read endpoint (traces, security alerts, analytics) works without a token, and project creation works via the seeded `demo` user.
 
 **5. Point the SDK at it**
 
