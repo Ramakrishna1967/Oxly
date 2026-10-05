@@ -91,10 +91,10 @@ export interface AnalyticsData {
 }
 
 export interface HealthServices {
-  clickhouse: string;
-  redis: string;
-  collector: string;
-  worker: string;
+  api: string;
+  sqlite: string;
+  queue: string;
+  retention: string;
   [key: string]: string; // Allow indexing
 }
 

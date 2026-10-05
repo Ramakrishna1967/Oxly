@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import aiosqlite
 import logging
+import re
 from pathlib import Path
 from typing import AsyncGenerator
+from urllib.parse import unquote
 
 logger = logging.getLogger("oxly.api")
 
@@ -20,19 +22,34 @@ logger = logging.getLogger("oxly.api")
 from api.config import settings
 import os
 
+# Matches Windows absolute paths with an optional leading slash:
+# "C:/data/oxly.db" or "/C:/data/oxly.db" (the latter comes from
+# "sqlite+aiosqlite:///C:/data/oxly.db" URL parsing).
+_WINDOWS_ABS_PATH = re.compile(r"^/?[A-Za-z]:[\\/]")
+
+
 def _get_default_db_path() -> Path:
-    db_url = settings.DATABASE_URL
-    if db_url.startswith("sqlite"):
-        # Handle sqlite+aiosqlite:///data/oxly.db (relative) 
-        # or sqlite+aiosqlite:////data/oxly.db (absolute)
-        if "////" in db_url:
-            return Path("/" + db_url.split("////")[-1])
-        elif "///" in db_url:
-            path_str = db_url.split("///")[-1]
-            if path_str.startswith("/"):
-                return Path(path_str)
-            return Path("/app") / path_str # Force absolute to /app if relative
-    return Path("/app/oxly.db")
+    """Resolve settings.DATABASE_URL to a filesystem path.
+
+    Accepts full "sqlite+aiosqlite://..." URLs (POSIX absolute, Windows
+    absolute, or relative) as well as bare paths like "oxly.db".
+    Relative paths resolve against the current working directory (which is
+    /app in the Docker image, so container behavior is unchanged).
+    """
+    db_url = (settings.DATABASE_URL or "").strip()
+    if "://" in db_url:
+        path_part = unquote(db_url.partition("://")[2])
+    elif db_url:
+        path_part = db_url
+    else:
+        path_part = "oxly.db"
+
+    if _WINDOWS_ABS_PATH.match(path_part):
+        return Path(path_part.lstrip("/"))
+    candidate = Path(path_part)
+    if candidate.is_absolute():
+        return candidate
+    return Path.cwd() / candidate
 
 _DEFAULT_DB_PATH = _get_default_db_path()
 
@@ -73,6 +90,7 @@ class Database:
         if self._initialized:
             return
 
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         async with aiosqlite.connect(self.db_path) as conn:
             # Enable WAL mode for better concurrency
             await conn.execute("PRAGMA journal_mode=WAL")
@@ -138,6 +156,19 @@ class Database:
                     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
                 )
             """)
+
+            # DEMO_MODE FIX: the demo identity ("demo") has no users row, so
+            # POST /projects 500s on the user_projects FK above. Seed a dummy
+            # demo user so project CRUD works end-to-end in demo mode.
+            # Dashboard login is bypassed in demo mode, so this placeholder
+            # password hash is never actually verified.
+            if settings.DEMO_MODE:
+                await conn.execute(
+                    """
+                    INSERT OR IGNORE INTO users (id, email, hashed_password, is_active)
+                    VALUES ('demo', 'demo@oxly.sh', 'DEMO_MODE_NO_LOGIN', 1)
+                    """
+                )
 
             # Traces table
             await conn.execute("""

@@ -101,12 +101,12 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentProject]);
 
-  // System Health state
+  // System Health state (keys must match GET /health services)
   const [health, setHealth] = useState<HealthServices>({
-    clickhouse: "pending",
-    redis: "pending",
-    collector: "pending",
-    worker: "pending"
+    api: "pending",
+    sqlite: "pending",
+    queue: "pending",
+    retention: "pending"
   });
 
   useEffect(() => {
@@ -117,10 +117,10 @@ const Dashboard: React.FC = () => {
       } catch (err) {
           console.error("Health check failed:", err);
         setHealth({
-           clickhouse: "down",
-           redis: "down",
-           collector: "down",
-           worker: "down"
+           api: "down",
+           sqlite: "down",
+           queue: "down",
+           retention: "down"
         });
       }
     };
@@ -193,10 +193,10 @@ const Dashboard: React.FC = () => {
           <div style={{ ...S.card, padding: 16 }}>
             <div style={S.h2}>System Status</div>
             {[
-              { id: "collector", label: "Collector API" },
-              { id: "redis", label: "Redis Stream" },
-              { id: "clickhouse", label: "ClickHouse DB" },
-              { id: "worker", label: "Security Engine" },
+              { id: "api", label: "API Server" },
+              { id: "sqlite", label: "SQLite DB" },
+              { id: "queue", label: "Ingest Queue" },
+              { id: "retention", label: "Retention Sweep" },
             ].map(item => {
               const status = health[item.id] || "operational";
               const isOk = status === "operational";
