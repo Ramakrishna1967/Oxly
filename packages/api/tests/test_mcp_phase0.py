@@ -4,7 +4,8 @@
 """Phase 0 scaffold tests: plugin shell + live /mcp endpoint.
 
 Done when: MCP Inspector -> http://localhost:8000/mcp -> init ok,
-empty tool list loads.
+tool list loads. (Phase 0 expected an empty list; Phase 2 registers the
+read-only observability tools — see test_mcp_phase2.py for tool coverage.)
 """
 
 from __future__ import annotations
@@ -65,12 +66,17 @@ def test_mcp_init_ok_empty_tools():
         assert session_id, "Streamable HTTP must return mcp-session-id"
 
         authed = {**headers, "mcp-session-id": session_id}
-        c.post("/mcp", json={"jsonrpc": "2.0", "method": "notifications/initialized"}, headers=authed)
+        c.post(
+            "/mcp", json={"jsonrpc": "2.0", "method": "notifications/initialized"}, headers=authed
+        )
         tools = c.post(
-            "/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, headers=authed
+            "/mcp",
+            json={"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+            headers=authed,
         )
         assert tools.status_code == 200, tools.text[:500]
-        assert '"tools":[]' in tools.text.replace(" ", "")
+        # Phase 2: the endpoint serves the read-only observability toolset.
+        assert '"query_traces"' in tools.text
 
 
 def test_mcp_reuses_project_helpers():

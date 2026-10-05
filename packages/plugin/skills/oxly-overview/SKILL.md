@@ -1,22 +1,48 @@
-# Oxly Overview (Phase 0 placeholder)
+# Oxly Overview (Phase 2)
 
-This skill is a placeholder for Phase 0. It documents what the Oxly plugin
-will expose once tools land in Phase 1+.
+Oxly is trace / span observability for AI agents, exposed to assistants
+through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
 
-## What Oxly does
+## Auth (every tool call)
 
-- Trace / span observability for AI agents
-- Cost attribution per model / project
-- Security rules (PII, injection, anomaly)
+- Pass the project's SDK API key (`ak_...`, issued once by
+  `POST /api/v1/projects`) as `api_key` on every call.
+- Calls scope to the key's project. An optional `project_id` must match
+  the key's project, otherwise the tool fails with `unknown project`
+  (bad key and wrong project are indistinguishable by design).
+- `DEMO_MODE=true` allows keyless calls with an explicit `project_id`
+  for local exploration only.
+- The toolset is read-only: project creation, deletion, and span
+  ingestion stay on the REST API under JWT / `X-API-Key` auth.
 
-## Phase 0 status
+## Tools
 
-- MCP endpoint live at `/mcp` (Streamable HTTP)
-- Empty tool list is EXPECTED — `initialize` must succeed, `tools/list` returns `[]`
-- Auth hook point: `get_user_project_ids`, `verify_project_ownership` in `packages/api/src/api/dependencies.py`
-- DB hook point: `packages/api/src/api/db.py` (`get_database`, `get_db`)
+- `whoami(api_key)` — confirm which project a key is scoped to.
+  Start here when unsure which key you hold.
+- `query_traces(api_key, project_id?, status?, limit?=20, offset?=0)` —
+  list traces newest-first with `span_count` (limit max 50).
+- `get_trace(trace_id, api_key)` — full trace with spans in replay
+  order (max 200 spans, `spans_truncated` flag when capped).
+- `get_span(span_id, api_key)` — one span: timing, status, service,
+  attributes, events.
+- `query_security_alerts(api_key, project_id?, severity?, limit?=25)` —
+  prompt-injection / PII / anomaly alerts, newest first.
+  `severity` in `low | medium | high | critical` (limit max 100).
+- `cost_summary(api_key, project_id?, interval?=day, start_date?, end_date?)` —
+  total cost/tokens, per-model breakdown, and timeseries.
+  `interval` in `hour | day | week`; dates are Unix seconds
+  (same convention as `GET /api/v1/analytics/cost`).
 
-## Next phases will add
+## Typical flows
 
-- `oxly.query_traces`, `oxly.get_trace`, `oxly.cost_summary`, `oxly.security_alerts`
-- All tools project-scoped via `verify_project_ownership`
+1. `whoami` → `query_traces` → `get_trace` (debug a failing run).
+2. `query_security_alerts(severity=high)` → `get_span` (inspect the
+   flagged span's attributes).
+3. `cost_summary(interval=week)` → per-model spend for the status update.
+
+## Errors
+
+- `unknown project` — bad `api_key` or mismatched `project_id`.
+- `unknown trace` / `unknown span` — id not found *or* not in the key's
+  project (no cross-project oracle).
+- `unknown severity|interval '...'` — with the valid values listed.

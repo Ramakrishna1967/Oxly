@@ -2,13 +2,13 @@
   "name": "oxly",
   "version": "0.1.0-alpha",
   "displayName": "Oxly — Chrome DevTools for AI Agents",
-  "description": "Trace, cost, and security observability for AI agents. Phase 0 scaffold: plugin shell + live /mcp endpoint.",
-  "phase": 0,
+  "description": "Trace, cost, and security observability for AI agents. Phase 2: 6 project-scoped read-only MCP tools + live /mcp endpoint.",
+  "phase": 2,
   "mcp": {
     "endpoint": "/mcp",
     "transport": "streamable-http",
     "version": "2025-06-18",
-    "note": "Empty tool list in Phase 0. Inspector must get init ok."
+    "note": "Phase 2 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok."
   },
   "ui": {
     "devPath": "/plugin/ui",
@@ -17,8 +17,8 @@
     "note": "Production UI assets MUST be hosted at the stable HTTPS origin allow-listed by the API Content-Security-Policy (frame-ancestors/script-src). Local dev serves packages/plugin/ui/ at /plugin/ui/."
   },
   "auth": {
-    "mode": "future-passthrough",
-    "note": "Phase 0 allows unauthenticated initialize for MCP Inspector. Phase 1 enforces project-scoped auth via get_user_project_ids / verify_project_ownership."
+    "mode": "project-api-key",
+    "note": "Every MCP tool takes the project's SDK API key (ak_...) as api_key and scopes to that project (explicit project_id must match). DEMO_MODE=true allows keyless calls with explicit project_id for local exploration."
   },
   "wellKnown": "/.well-known/oxly-plugin.json",
   "homepage": "https://github.com/oxly/oxly"

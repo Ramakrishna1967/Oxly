@@ -1,6 +1,8 @@
-# Oxly Plugin — Phase 0 scaffold
+# Oxly Plugin — Phase 2
 
-Plugin shell + live `/mcp` endpoint. Empty tool list is expected.
+Plugin shell + live `/mcp` endpoint with 6 project-scoped read-only tools:
+`query_traces`, `get_trace`, `get_span`, `query_security_alerts`,
+`cost_summary`, `whoami` (all scoped via the project's `ak_...` key).
 
 ## Layout
 
@@ -22,8 +24,9 @@ packages/plugin/
 - Host `packages/plugin/ui/` contents at that origin in production (any static host).
   Local dev does not need HTTPS — `/plugin/ui/` is served by the API itself.
 
-## Verify Phase 0
+## Verify Phase 2
 
 1. `uvicorn api.main:app --port 8000` (from `packages/api/src`, or equivalent)
-2. MCP Inspector -> `http://localhost:8000/mcp` -> `initialize` ok, `tools/list` -> `[]`
+2. MCP Inspector -> `http://localhost:8000/mcp` -> `initialize` ok, `tools/list` -> 6 tools
 3. `GET /plugin/plugin.json`, `GET /.well-known/oxly-plugin.json`, `GET /plugin/ui/` -> 200
+4. `pytest packages/api/tests/test_mcp_phase2.py` — tools/call scoping + isolation
