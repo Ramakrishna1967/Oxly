@@ -1,0 +1,7 @@
+{
+  "name": "oxly-overview",
+  "version": "0.1.0-alpha",
+  "description": "Overview of the Oxly observability plugin (Phase 0 placeholder, no tools yet).",
+  "phase": 0,
+  "entry": "SKILL.md"
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oxly Plugin — Phase 0</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <!--
+      Production: this directory is hosted at the stable HTTPS origin
+      configured via PLUGIN_UI_ORIGIN (default https://plugin.oxly.sh),
+      which the API Content-Security-Policy allow-lists in
+      frame-ancestors / script-src. Local dev serves it at /plugin/ui/.
+    -->
+  </head>
+  <body>
+    <main>
+      <h1>Oxly Plugin — Phase 0 scaffold</h1>
+      <p>MCP endpoint: <code id="mcp">/mcp</code> (Streamable HTTP, empty tool list expected).</p>
+      <p>API health: <code id="health">checking…</code></p>
+      <script src="./app.js"></script>
+    </main>
+  </body>
+</html>

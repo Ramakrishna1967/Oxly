@@ -31,12 +31,19 @@ _last_cleanup_time = time.time()
 
 
 def add_cors_middleware(app: FastAPI) -> None:
-    """Add CORS middleware with configurable origins via CORS_ORIGINS env var."""
-    # Included http://localhost (port 80) for gateway access
+    """Add CORS middleware with configurable origins via CORS_ORIGINS env var.
+
+    Exposes ``Mcp-Session-Id`` so browser-based MCP clients (e.g. Inspector)
+    can complete the Streamable HTTP handshake.
+    """
+    # Included http://localhost (port 80) for gateway access.
+    # :6274/:6277 are the MCP Inspector dev ports.
     default_origins = (
         "http://localhost,http://127.0.0.1,"
         "http://localhost:5173,http://127.0.0.1:5173,"
-        "http://localhost:3000,http://localhost:80"
+        "http://localhost:3000,http://localhost:80,"
+        "http://localhost:6274,http://127.0.0.1:6274,"
+        "http://localhost:6277,http://127.0.0.1:6277"
     )
     origins = os.getenv("CORS_ORIGINS", default_origins).split(",")
     app.add_middleware(
@@ -45,7 +52,38 @@ def add_cors_middleware(app: FastAPI) -> None:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["Mcp-Session-Id"],
     )
+
+
+def add_security_headers_middleware(app: FastAPI) -> None:
+    """Set Content-Security-Policy allow-listing the stable plugin UI origin.
+
+    Env:
+        PLUGIN_UI_ORIGIN: stable HTTPS origin hosting packages/plugin/ui/
+            (default https://plugin.oxly.sh).
+    """
+
+    plugin_origin = os.getenv("PLUGIN_UI_ORIGIN", "https://plugin.oxly.sh").strip()
+
+    @app.middleware("http")
+    async def security_headers_middleware(request: Request, call_next: Callable):
+        response = await call_next(request)
+        # frame-ancestors/script-src allow the stable UI origin; everything
+        # else stays same-origin. Local dev serves /plugin/ui/ same-origin,
+        # which 'self' already covers.
+        csp = (
+            "default-src 'self'; "
+            f"script-src 'self' {plugin_origin}; "
+            f"style-src 'self' {plugin_origin} 'unsafe-inline'; "
+            f"img-src 'self' {plugin_origin} data:; "
+            f"connect-src 'self' {plugin_origin}; "
+            f"frame-ancestors 'self' {plugin_origin}; "
+            "frame-src 'self'; "
+            "object-src 'none'; base-uri 'self'"
+        )
+        response.headers.setdefault("Content-Security-Policy", csp)
+        return response
 
 
 async def rate_limit_middleware(request: Request, call_next: Callable):

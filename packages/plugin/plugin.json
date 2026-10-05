@@ -1,0 +1,25 @@
+{
+  "name": "oxly",
+  "version": "0.1.0-alpha",
+  "displayName": "Oxly — Chrome DevTools for AI Agents",
+  "description": "Trace, cost, and security observability for AI agents. Phase 0 scaffold: plugin shell + live /mcp endpoint.",
+  "phase": 0,
+  "mcp": {
+    "endpoint": "/mcp",
+    "transport": "streamable-http",
+    "version": "2025-06-18",
+    "note": "Empty tool list in Phase 0. Inspector must get init ok."
+  },
+  "ui": {
+    "devPath": "/plugin/ui",
+    "stableOriginEnv": "PLUGIN_UI_ORIGIN",
+    "stableOriginDefault": "https://plugin.oxly.sh",
+    "note": "Production UI assets MUST be hosted at the stable HTTPS origin allow-listed by the API Content-Security-Policy (frame-ancestors/script-src). Local dev serves packages/plugin/ui/ at /plugin/ui/."
+  },
+  "auth": {
+    "mode": "future-passthrough",
+    "note": "Phase 0 allows unauthenticated initialize for MCP Inspector. Phase 1 enforces project-scoped auth via get_user_project_ids / verify_project_ownership."
+  },
+  "wellKnown": "/.well-known/oxly-plugin.json",
+  "homepage": "https://github.com/oxly/oxly"
+}
