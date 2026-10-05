@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Single-process architecture: ingestion, cost/security/storage pipeline, REST, WebSocket, and dashboard static hosting folded into `packages/api` (SQLite + in-process `asyncio.Queue`); Redis/ClickHouse/collector/workers removed
+- ChatGPT plugin shell (`packages/plugin/`): canonical `plugin.json` served at
+  `/plugin/plugin.json` + `/.well-known/oxly-plugin.json`, MCP client config at
+  `/plugin/mcp.json`, placeholder skill (`oxly-overview`) and status UI at
+  `/plugin/ui/` (prod hosts UI at `PLUGIN_UI_ORIGIN`, allow-listed via CSP
+  `frame-ancestors`/`script-src`)
+- Live MCP endpoint at `/mcp` (Streamable HTTP, protocol `2025-06-18`):
+  `initialize` ok, `tools/list` serves the 6 project-scoped read-only tools
+- MCP tools (all scoped via the project `ak_...` key, no cross-project oracle):
+  `query_traces`, `get_trace` (max 200 spans, `spans_truncated` flag),
+  `get_span`, `query_security_alerts`, `cost_summary`, `whoami`;
+  `DEMO_MODE=true` allows keyless calls with explicit `project_id`
 - `POST /v1/traces` returns 503 `Ingest pipeline not ready` when lifespan hasn't started the span queue (was unhandled 500 `AttributeError`)
 - `GET /api/v1/health` returns `{api, sqlite, queue, retention}` for the dashboard System Status panel
 - `DATABASE_URL` accepts Windows drive-letter URLs and bare/relative paths (resolved against CWD); parent dirs created on init

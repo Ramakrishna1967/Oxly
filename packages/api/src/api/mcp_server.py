@@ -46,7 +46,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, NoReturn
 
 from passlib.hash import pbkdf2_sha256 as pwd_context
 
@@ -80,7 +80,7 @@ _VALID_SEVERITIES = ("low", "medium", "high", "critical")
 _VALID_INTERVALS = ("hour", "day", "week")
 
 
-def _fail(message: str) -> Any:
+def _fail(message: str) -> NoReturn:
     """Raise an anticipated tool failure whose text reaches the MCP client.
 
     The MCP SDK wraps plain exceptions (e.g. ``ValueError``) in a generic
@@ -238,24 +238,22 @@ def build_mcp_server() -> MCPServer:
             filters.append("t.status = ?")
             params.append(status)
         where_sql = f"WHERE {' AND '.join(filters)}"
+        # where_sql uses only static fragments; values are bound via params.
+        count_sql = f"SELECT COUNT(*) FROM traces t {where_sql}"  # nosec B608
+        list_sql = (  # nosec B608
+            "SELECT t.trace_id, t.project_id, t.start_time, t.end_time,"
+            " t.status,"
+            " (SELECT COUNT(*) FROM spans s WHERE s.trace_id = t.trace_id) AS span_count"
+            f" FROM traces t {where_sql} ORDER BY t.start_time DESC LIMIT ? OFFSET ?"
+        )
         db = get_database()
         conn = await db.get_connection()
         try:
-            async with conn.execute(f"SELECT COUNT(*) FROM traces t {where_sql}", params) as cursor:
+            async with conn.execute(count_sql, params) as cursor:
                 count_row = await cursor.fetchone()
             total = count_row[0] if count_row else 0
             async with conn.execute(
-                """SELECT t.trace_id, t.project_id, t.start_time, t.end_time,
-                          t.status,
-                          (SELECT COUNT(*) FROM spans s
-                            WHERE s.trace_id = t.trace_id) AS span_count
-                   FROM traces t
-                   """
-                + where_sql
-                + """
-                   ORDER BY t.start_time DESC
-                   LIMIT ? OFFSET ?
-                """,
+                list_sql,
                 params + [limit, offset],
             ) as cursor:
                 rows = await cursor.fetchall()
@@ -358,19 +356,17 @@ def build_mcp_server() -> MCPServer:
             filters.append("severity = ?")
             params.append(sev)
         where_sql = f"WHERE {' AND '.join(filters)}"
+        # where_sql is static ("project_id = ?", "severity = ?"); values bound.
+        alerts_sql = (  # nosec B608
+            "SELECT id, trace_id, span_id, project_id, severity,"
+            " rule_name AS alert_type, message, metadata, created_at"
+            f" FROM security_alerts {where_sql} ORDER BY created_at DESC LIMIT ?"
+        )
         db = get_database()
         conn = await db.get_connection()
         try:
             async with conn.execute(
-                """SELECT id, trace_id, span_id, project_id, severity,
-                          rule_name AS alert_type, message, metadata, created_at
-                   FROM security_alerts
-                   """
-                + where_sql
-                + """
-                   ORDER BY created_at DESC
-                   LIMIT ?
-                """,
+                alerts_sql,
                 params + [limit],
             ) as cursor:
                 rows = await cursor.fetchall()
@@ -418,20 +414,20 @@ def build_mcp_server() -> MCPServer:
             params.append(end_date)
         where_sql = f"WHERE {' AND '.join(clauses)}"
         bucket = _time_bucket_expr(iv)
+        # bucket is allowlisted, where_sql uses static fragments; values bound.
+        cost_sql = (  # nosec B608
+            f"SELECT {bucket} AS time_bucket, model,"
+            " SUM(prompt_tokens) AS prompt_tokens,"
+            " SUM(completion_tokens) AS completion_tokens,"
+            " SUM(total_tokens) AS total_tokens, SUM(cost_usd) AS cost_usd"
+            f" FROM cost_metrics {where_sql} GROUP BY time_bucket, model"
+            " ORDER BY time_bucket ASC"
+        )
         db = get_database()
         conn = await db.get_connection()
         try:
             async with conn.execute(
-                f"""SELECT {bucket} AS time_bucket, model,
-                           SUM(prompt_tokens) AS prompt_tokens,
-                           SUM(completion_tokens) AS completion_tokens,
-                           SUM(total_tokens) AS total_tokens,
-                           SUM(cost_usd) AS cost_usd
-                    FROM cost_metrics
-                    {where_sql}
-                    GROUP BY time_bucket, model
-                    ORDER BY time_bucket ASC
-                """,
+                cost_sql,
                 params,
             ) as cursor:
                 rows = await cursor.fetchall()

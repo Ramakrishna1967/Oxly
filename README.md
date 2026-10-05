@@ -348,6 +348,18 @@ This entire flow — register, login, create project, send a trace, and read it 
 
 <br>
 
+## ChatGPT / MCP Plugin (Phase 2)
+
+Oxly exposes 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP):
+
+`query_traces` · `get_trace` · `get_span` · `query_security_alerts` · `cost_summary` · `whoami`
+
+- **Auth:** pass the project `ak_...` key (from `POST /api/v1/projects`) as `api_key` on every call. An optional `project_id` must match the key's project, otherwise the tool fails with `unknown project` (bad key and wrong project are indistinguishable by design). `DEMO_MODE=true` allows keyless calls with an explicit `project_id` for local exploration.
+- **Try it:** MCP Inspector → `http://localhost:8000/mcp` → `initialize` ok → `tools/list` → 6 tools. Manifest at `/plugin/plugin.json` (also `/.well-known/oxly-plugin.json`), client config at `/plugin/mcp.json`, status UI at `/plugin/ui/`.
+- **Verify:** `pytest packages/api/tests/test_mcp_phase2.py` (scoping + cross-project isolation) and `test_mcp_phase0.py` (shell + endpoint). See `packages/plugin/README.md` and `packages/plugin/skills/oxly-overview/SKILL.md` for tool reference.
+
+<br>
+
 ## Environment Variables
 
 **API** (`packages/api`, read by `api/config.py` unless noted):
@@ -362,6 +374,7 @@ This entire flow — register, login, create project, send a trace, and read it 
 | `DEMO_MODE` | `false` | Bypasses JWT auth on read endpoints with a synthetic `demo` user |
 | `CORS_ORIGINS` | `http://localhost,http://127.0.0.1,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://localhost:80` | Comma-separated allowed origins (read directly via `os.getenv`, not part of `Settings`) |
 | `DASHBOARD_DIST_DIR` | `<api package dir>/static` | Where `main.py` looks for the dashboard's built `dist/` |
+| `PLUGIN_UI_ORIGIN` | `https://plugin.oxly.sh` | Stable HTTPS origin hosting `packages/plugin/ui/`; allow-listed via CSP `frame-ancestors`/`script-src` |
 
 **SDK** (`packages/sdk-python`, read by `oxly/config.py`, all prefixed `OXLY_`):
 
