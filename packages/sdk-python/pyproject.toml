@@ -59,7 +59,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH"]
-ignore = ["E501"]
+# B008: retained for parity with the API package (no current hits in the SDK).
+# TC001/TC002/TC003: runtime-evaluated annotations; TYPE_CHECKING moves risk
+# NameError for negligible import-time gain.
+ignore = ["E501", "B008", "TC001", "TC002", "TC003"]
 
 [tool.ruff.format]
 quote-style = "double"

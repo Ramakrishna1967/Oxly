@@ -65,7 +65,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH"]
-ignore = ["E501"]
+# B008: FastAPI's Depends()/Query() in defaults is the framework's documented idiom.
+# TC001/TC002/TC003: annotations are evaluated at runtime (no future import in
+# routes; FastAPI resolves hints via get_type_hints), so moving these imports
+# into TYPE_CHECKING blocks would raise NameError on startup.
+ignore = ["E501", "B008", "TC001", "TC002", "TC003"]
 
 [tool.ruff.format]
 quote-style = "double"

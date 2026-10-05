@@ -40,13 +40,13 @@ async def get_current_user(
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
-             if settings.DEMO_MODE:
+            if settings.DEMO_MODE:
                 return {"id": "demo", "email": "demo@oxly.sh", "is_active": True}
-             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as err:
         if settings.DEMO_MODE:
             return {"id": "demo", "email": "demo@oxly.sh", "is_active": True}
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token") from err
 
     # Fetch user from database
     async with db.execute(

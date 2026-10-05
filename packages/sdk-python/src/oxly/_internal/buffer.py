@@ -54,6 +54,7 @@ class RingBuffer(Generic[T]):
         if overflow:
             try:
                 from oxly.metrics import get_metrics
+
                 metrics = get_metrics()
                 metrics.record_buffer_state(len(self._buffer), self._capacity, overflow=True)
             except ImportError:

@@ -97,7 +97,12 @@ async def get_cost_timeseries(
         ts = row["time_bucket"]
 
         if ts not in processed:
-            processed[ts] = {"timestamp": ts, "total_cost": 0, "prompt_tokens": 0, "completion_tokens": 0}
+            processed[ts] = {
+                "timestamp": ts,
+                "total_cost": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+            }
 
         model = row["model"]
         cost = row["cost_usd"]

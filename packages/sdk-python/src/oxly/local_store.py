@@ -114,10 +114,7 @@ class LocalStore:
         if not spans:
             return 0
         try:
-            rows = [
-                (s.span_id, s.trace_id, json.dumps(s.to_export_dict()), 0)
-                for s in spans
-            ]
+            rows = [(s.span_id, s.trace_id, json.dumps(s.to_export_dict()), 0) for s in spans]
             with self._lock, closing(self._get_conn()) as conn:
                 conn.executemany(
                     "INSERT OR REPLACE INTO spans (span_id, trace_id, data, sent) VALUES (?, ?, ?, ?)",
@@ -210,9 +207,7 @@ class LocalStore:
         """
         try:
             with self._lock, closing(self._get_conn()) as conn:
-                cursor = conn.execute(
-                    "SELECT data FROM spans ORDER BY created_at ASC"
-                )
+                cursor = conn.execute("SELECT data FROM spans ORDER BY created_at ASC")
                 rows = cursor.fetchall()
 
             spans_data = [json.loads(row[0]) for row in rows]

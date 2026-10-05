@@ -24,11 +24,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEMO_MODE: bool = False  # SECURITY: Must be explicitly enabled for demo mode
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()
@@ -46,5 +42,6 @@ if settings.JWT_SECRET_KEY in _INSECURE_DEFAULTS:
     else:
         # Allow development mode with a generated key, but warn
         import secrets
+
         settings.JWT_SECRET_KEY = secrets.token_hex(32)
         print("WARNING: Using auto-generated JWT secret (development mode only).", file=sys.stderr)

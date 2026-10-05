@@ -55,14 +55,20 @@ def instrument() -> None:
                     runnable = node_spec.runnable
 
                     # Sync
-                    if hasattr(runnable, "func") and runnable.func:
-                        if not hasattr(runnable.func, "_oxly_instrumented"):
-                            runnable.func = _instrument_node(node_name, runnable.func)
+                    if (
+                        hasattr(runnable, "func")
+                        and runnable.func
+                        and not hasattr(runnable.func, "_oxly_instrumented")
+                    ):
+                        runnable.func = _instrument_node(node_name, runnable.func)
 
                     # Async
-                    if hasattr(runnable, "afunc") and runnable.afunc:
-                        if not hasattr(runnable.afunc, "_oxly_instrumented"):
-                            runnable.afunc = _instrument_node(node_name, runnable.afunc)
+                    if (
+                        hasattr(runnable, "afunc")
+                        and runnable.afunc
+                        and not hasattr(runnable.afunc, "_oxly_instrumented")
+                    ):
+                        runnable.afunc = _instrument_node(node_name, runnable.afunc)
 
                 # Fallback for older versions where nodes were direct functions
                 elif not hasattr(node_spec, "_oxly_instrumented") and callable(node_spec):
@@ -72,7 +78,7 @@ def instrument() -> None:
             return original_compile(self, *args, **kwargs)
 
         # Replace the compile method
-        StateGraph.compile = instrumented_compile
+        StateGraph.compile = instrumented_compile  # type: ignore[method-assign]
         _instrumented = True
         logger.debug("LangGraph instrumentation applied successfully")
 
@@ -100,6 +106,7 @@ def _instrument_node(node_name: str, node_func: Callable) -> Callable:
     from oxly.tracer import Tracer
 
     if asyncio.iscoroutinefunction(node_func):
+
         @functools.wraps(node_func)
         async def async_wrapped(*args: Any, **kwargs: Any) -> Any:
             tracer = Tracer.get_tracer()

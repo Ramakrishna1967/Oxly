@@ -81,6 +81,7 @@ class HttpTransport:
         # SECURITY: Warn about HTTP usage in production
         if collector_url.startswith("http://"):
             import os
+
             env = os.environ.get("ENVIRONMENT", "development")
             if env not in ("development", "dev", "local"):
                 logger.warning(
@@ -171,10 +172,13 @@ class HttpTransport:
 
             # Exponential backoff before retry
             if attempt < self._max_retries - 1:
-                backoff = _BACKOFF_BASE_S * (_BACKOFF_MULTIPLIER ** attempt)
+                backoff = _BACKOFF_BASE_S * (_BACKOFF_MULTIPLIER**attempt)
                 logger.debug(
                     "Transport retry %d/%d in %.1fs: %s",
-                    attempt + 1, self._max_retries, backoff, last_error,
+                    attempt + 1,
+                    self._max_retries,
+                    backoff,
+                    last_error,
                 )
                 time.sleep(backoff)
 

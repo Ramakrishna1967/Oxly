@@ -39,9 +39,7 @@ _trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "oxly_trace_id", default=None
 )
 
-_span_stack_var: contextvars.ContextVar[list[Span]] = contextvars.ContextVar(
-    "oxly_span_stack"
-)
+_span_stack_var: contextvars.ContextVar[list[Span]] = contextvars.ContextVar("oxly_span_stack")
 
 
 #  Public API
@@ -89,9 +87,11 @@ def span_context(span: Span) -> Generator[Span, None, None]:
 
     # SECURITY: Check max nesting depth to prevent stack overflow
     if len(stack) >= _MAX_SPAN_DEPTH:
-        logger.warning(f"Span nesting depth limit ({_MAX_SPAN_DEPTH}) reached. "
-                      f"New span will not be added to context stack. "
-                      f"This may indicate infinite recursion or excessive nesting.")
+        logger.warning(
+            f"Span nesting depth limit ({_MAX_SPAN_DEPTH}) reached. "
+            f"New span will not be added to context stack. "
+            f"This may indicate infinite recursion or excessive nesting."
+        )
         # Still yield the span but don't add to stack to prevent overflow.
         # No try/finally here: there's nothing to clean up (we never pushed
         # onto the stack), and a bare `return` in `finally` would silently

@@ -24,6 +24,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import logging
@@ -65,7 +66,7 @@ def _capture_arguments(func: Callable, args: tuple, kwargs: dict) -> dict[str, s
         sig = inspect.signature(func)
         bound = sig.bind(*args, **kwargs)
         bound.apply_defaults()
-        for i, (param_name, value) in enumerate(bound.arguments.items()):
+        for param_name, value in bound.arguments.items():
             if param_name == "self" or param_name == "cls":
                 continue
             attrs[f"func.arg.{param_name}"] = _safe_str(value)
@@ -126,10 +127,8 @@ def _wrap_sync(
 
             # Capture return value
             if capture_result:
-                try:
+                with contextlib.suppress(Exception):
                     span.set_attribute("func.result", _safe_str(result))
-                except Exception:
-                    pass
 
             span.set_status(SpanStatus.OK)
             span.end()
@@ -184,10 +183,8 @@ def _wrap_async(
 
             # Capture return value
             if capture_result:
-                try:
+                with contextlib.suppress(Exception):
                     span.set_attribute("func.result", _safe_str(result))
-                except Exception:
-                    pass
 
             span.set_status(SpanStatus.OK)
             span.end()

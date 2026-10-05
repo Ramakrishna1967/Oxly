@@ -13,15 +13,16 @@ import logging
 import re
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 from urllib.parse import unquote
 
 import aiosqlite
 
+from api.config import settings
+
 logger = logging.getLogger("oxly.api")
 
 # Default database location logic
-
-from api.config import settings
 
 # Matches Windows absolute paths with an optional leading slash:
 # "C:/data/oxly.db" or "/C:/data/oxly.db" (the latter comes from
@@ -52,6 +53,7 @@ def _get_default_db_path() -> Path:
         return candidate
     return Path.cwd() / candidate
 
+
 _DEFAULT_DB_PATH = _get_default_db_path()
 
 
@@ -61,11 +63,14 @@ class Database:
     _LATEST_VERSION = 1
 
     # Migration definitions: version -> (name, SQL statements)
-    _MIGRATIONS = {
-        1: ("initial_schema", [
-            # All CREATE TABLE IF NOT EXISTS statements are idempotent,
-            # so running them as a migration is safe for both fresh and existing DBs
-        ]),
+    _MIGRATIONS: dict[int, tuple[str, list[str]]] = {
+        1: (
+            "initial_schema",
+            [
+                # All CREATE TABLE IF NOT EXISTS statements are idempotent,
+                # so running them as a migration is safe for both fresh and existing DBs
+            ],
+        ),
     }
 
     def __init__(self, db_path: str | Path = _DEFAULT_DB_PATH):
@@ -110,7 +115,7 @@ class Database:
 
             # Check current schema version
             cursor = await conn.execute("SELECT MAX(version) FROM _schema_version")
-            row = await cursor.fetchone()
+            row: Any = await cursor.fetchone()
             current_version = row[0] if row[0] is not None else 0
 
             if current_version == 0:
@@ -271,10 +276,10 @@ class Database:
                 ON cost_metrics(project_id, timestamp DESC)
             """)
 
-
-
             try:
-                await conn.execute("ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0")
+                await conn.execute(
+                    "ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0"
+                )
                 await conn.execute("ALTER TABLE users ADD COLUMN locked_until TIMESTAMP")
             except Exception:
                 pass

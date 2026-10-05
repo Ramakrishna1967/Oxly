@@ -12,6 +12,7 @@ minus their Redis Stream / ClickHouse plumbing.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import sqlite3
@@ -54,32 +55,40 @@ def _build_alerts(span: dict) -> list[dict]:
     if full_text:
         injection_score = injection.check_injection(full_text)
         if injection_score > 50:
-            alerts.append({
-                "rule": "Prompt Injection",
-                "severity": "HIGH" if injection_score > 80 else "MEDIUM",
-                "score": injection_score,
-                "description": "Potential prompt injection detected in LLM input/output",
-                "evidence": full_text[:200],
-            })
+            alerts.append(
+                {
+                    "rule": "Prompt Injection",
+                    "severity": "HIGH" if injection_score > 80 else "MEDIUM",
+                    "score": injection_score,
+                    "description": "Potential prompt injection detected in LLM input/output",
+                    "evidence": full_text[:200],
+                }
+            )
 
         pii_types = pii.check_pii(full_text)
         if pii_types:
-            alerts.append({
-                "rule": "PII Leak",
-                "severity": "CRITICAL" if ("AWS_KEY" in pii_types or "SSN" in pii_types) else "HIGH",
-                "score": 100.0,
-                "description": f"Sensitive PII detected: {', '.join(pii_types)}",
-                "evidence": "REDACTED",
-            })
+            alerts.append(
+                {
+                    "rule": "PII Leak",
+                    "severity": "CRITICAL"
+                    if ("AWS_KEY" in pii_types or "SSN" in pii_types)
+                    else "HIGH",
+                    "score": 100.0,
+                    "description": f"Sensitive PII detected: {', '.join(pii_types)}",
+                    "evidence": "REDACTED",
+                }
+            )
 
     for anom in anomaly.check_anomaly(span):
-        alerts.append({
-            "rule": anom.split(":")[0],
-            "severity": "LOW",
-            "score": 30.0,
-            "description": anom,
-            "evidence": str(span.get("duration_ms", "N/A")),
-        })
+        alerts.append(
+            {
+                "rule": anom.split(":")[0],
+                "severity": "LOW",
+                "score": 30.0,
+                "description": anom,
+                "evidence": str(span.get("duration_ms", "N/A")),
+            }
+        )
 
     return alerts
 
@@ -214,19 +223,21 @@ async def _save_alerts_and_broadcast(conn, span: dict) -> None:
             ),
         )
 
-        await ws.broadcast({
-            "type": "alert",
-            "data": {
-                "id": alert_id,
-                "project_id": str(project_id),
-                "trace_id": str(trace_id),
-                "span_id": str(span_id),
-                "rule": str(alert["rule"]),
-                "severity": str(alert["severity"]),
-                "description": str(alert["description"]),
-                "created_at": str(created_at),
-            },
-        })
+        await ws.broadcast(
+            {
+                "type": "alert",
+                "data": {
+                    "id": alert_id,
+                    "project_id": str(project_id),
+                    "trace_id": str(trace_id),
+                    "span_id": str(span_id),
+                    "rule": str(alert["rule"]),
+                    "severity": str(alert["severity"]),
+                    "description": str(alert["description"]),
+                    "created_at": str(created_at),
+                },
+            }
+        )
 
 
 async def _process_span(span: dict) -> None:
@@ -255,7 +266,8 @@ async def _consume_loop(queue: asyncio.Queue) -> None:
             # reject it distinctly so it doesn't read as an unknown crash.
             logger.warning(
                 "Rejected span %s for project_id=%s: project no longer exists, dropping",
-                span.get("span_id", "?"), span.get("project_id", "?"),
+                span.get("span_id", "?"),
+                span.get("project_id", "?"),
             )
         except Exception:
             logger.exception("Failed to process span %s, dropping", span.get("span_id", "?"))
@@ -273,8 +285,6 @@ async def stop_span_consumer(app: FastAPI) -> None:
     task = getattr(app.state, "span_consumer_task", None)
     if task:
         task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await task
-        except asyncio.CancelledError:
-            pass
         app.state.span_consumer_task = None

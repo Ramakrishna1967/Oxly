@@ -13,8 +13,6 @@ This module is imported lazily when the user calls init() with auto_instrument=T
 from __future__ import annotations
 
 import logging
-import sys
-from typing import Any
 
 logger = logging.getLogger("oxly")
 
@@ -30,6 +28,7 @@ def detect_frameworks() -> dict[str, bool]:
     # Check for LangGraph
     try:
         import langgraph  # noqa: F401
+
         frameworks["langgraph"] = True
     except ImportError:
         frameworks["langgraph"] = False
@@ -37,6 +36,7 @@ def detect_frameworks() -> dict[str, bool]:
     # Check for CrewAI
     try:
         import crewai  # noqa: F401
+
         frameworks["crewai"] = True
     except ImportError:
         frameworks["crewai"] = False
@@ -44,6 +44,7 @@ def detect_frameworks() -> dict[str, bool]:
     # Check for AutoGen
     try:
         import autogen  # noqa: F401
+
         frameworks["autogen"] = True
     except ImportError:
         frameworks["autogen"] = False
@@ -66,6 +67,7 @@ def auto_instrument() -> dict[str, bool]:
     if detected.get("langgraph"):
         try:
             from oxly.frameworks import langgraph
+
             langgraph.instrument()
             results["langgraph"] = True
             logger.debug("LangGraph auto-instrumentation applied")
@@ -76,6 +78,7 @@ def auto_instrument() -> dict[str, bool]:
     if detected.get("crewai"):
         try:
             from oxly.frameworks import crewai
+
             crewai.instrument()
             results["crewai"] = True
             logger.debug("CrewAI auto-instrumentation applied")
@@ -86,6 +89,7 @@ def auto_instrument() -> dict[str, bool]:
     if detected.get("autogen"):
         try:
             from oxly.frameworks import autogen
+
             autogen.instrument()
             results["autogen"] = True
             logger.debug("AutoGen auto-instrumentation applied")

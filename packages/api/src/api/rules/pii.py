@@ -41,11 +41,13 @@ def _validate_credit_card(match: re.Match) -> bool:
         # Visa
         range(40, 50),
         # Mastercard
-        range(51, 56), range(2221, 2721),
+        range(51, 56),
+        range(2221, 2721),
         # Amex
         range(34, 38),
         # Discover
-        range(60, 66), range(622126, 622926),
+        range(60, 66),
+        range(622126, 622926),
         # JCB
         range(3528, 3589),
     }
@@ -53,10 +55,7 @@ def _validate_credit_card(match: re.Match) -> bool:
     first_six = int(digits[:6]) if len(digits) >= 6 else 0
     first_four = int(digits[:4]) if len(digits) >= 4 else 0
 
-    in_range = any(
-        first_two in r or first_four in r or first_six in r
-        for r in known_ranges
-    )
+    in_range = any(first_two in r or first_four in r or first_six in r for r in known_ranges)
     if not in_range:
         return False
 

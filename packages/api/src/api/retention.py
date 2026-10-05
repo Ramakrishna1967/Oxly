@@ -11,6 +11,7 @@ no built-in TTL.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 
@@ -32,7 +33,11 @@ async def _sweep_once() -> None:
         cursor = await conn.execute("DELETE FROM spans WHERE start_time < ?", (cutoff_ns,))
         await conn.commit()
         if cursor.rowcount:
-            logger.info("Retention sweep deleted %d spans older than %d days", cursor.rowcount, SPAN_RETENTION_DAYS)
+            logger.info(
+                "Retention sweep deleted %d spans older than %d days",
+                cursor.rowcount,
+                SPAN_RETENTION_DAYS,
+            )
     finally:
         await conn.close()
 
@@ -58,8 +63,6 @@ async def stop_retention_sweep(app: FastAPI) -> None:
     task = getattr(app.state, "retention_task", None)
     if task:
         task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await task
-        except asyncio.CancelledError:
-            pass
         app.state.retention_task = None

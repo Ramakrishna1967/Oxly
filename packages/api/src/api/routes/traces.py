@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -83,15 +84,17 @@ async def list_traces(
         start_ns = row["start_time"]
         end_ns = row["end_time"] if row["end_time"] is not None else start_ns
 
-        traces.append({
-            "trace_id": row["trace_id"],
-            "project_id": row["project_id"],
-            "start_time": start_ns,
-            "end_time": end_ns,
-            "duration_ms": (end_ns - start_ns) / 1e6,
-            "status": row["status"],
-            "span_count": row["span_count"],
-        })
+        traces.append(
+            {
+                "trace_id": row["trace_id"],
+                "project_id": row["project_id"],
+                "start_time": start_ns,
+                "end_time": end_ns,
+                "duration_ms": (end_ns - start_ns) / 1e6,
+                "status": row["status"],
+                "span_count": row["span_count"],
+            }
+        )
 
     return {
         "items": traces,
@@ -111,7 +114,7 @@ async def get_trace_detail(
     """Get full trace detail with all spans."""
     query = "SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC"
     async with db.execute(query, (trace_id,)) as cursor:
-        span_rows = await cursor.fetchall()
+        span_rows: list[Any] = list(await cursor.fetchall())
 
     if not span_rows:
         raise HTTPException(status_code=404, detail="Trace not found")
@@ -121,17 +124,20 @@ async def get_trace_detail(
         raise HTTPException(status_code=403, detail="Trace not found")
 
     spans = []
-    min_start = None
-    max_end = None
+    min_start: int | None = None
+    max_end: int | None = None
     final_status = SpanStatus.OK
 
     for row in span_rows:
         start_ns = row["start_time"]
         end_ns = row["end_time"] if row["end_time"] is not None else start_ns + 1_000_000
 
-        if min_start is None or start_ns < min_start: min_start = start_ns
-        if max_end is None or end_ns > max_end: max_end = end_ns
-        if row["status"] == "ERROR": final_status = SpanStatus.ERROR
+        if min_start is None or start_ns < min_start:
+            min_start = start_ns
+        if max_end is None or end_ns > max_end:
+            max_end = end_ns
+        if row["status"] == "ERROR":
+            final_status = SpanStatus.ERROR
 
         spans.append(
             SpanSchema(
@@ -153,12 +159,13 @@ async def get_trace_detail(
     return TraceDetailSchema(
         trace_id=trace_id,
         project_id=span_rows[0]["project_id"],
-        start_time=min_start,
+        start_time=min_start if min_start is not None else 0,
         end_time=max_end,
         duration_ms=round((max_end - min_start) / 1e6) if min_start and max_end else 0,
         status=final_status,
         spans=spans,
     )
+
 
 @router.get("/traces/{trace_id}/replay", response_model=list[SpanSchema])
 async def get_trace_replay(
@@ -169,7 +176,7 @@ async def get_trace_replay(
     """Get ordered spans for a trace to support Time Machine replay."""
     query = "SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC"
     async with db.execute(query, (trace_id,)) as cursor:
-        span_rows = await cursor.fetchall()
+        span_rows: list[Any] = list(await cursor.fetchall())
 
     if not span_rows:
         raise HTTPException(status_code=404, detail="Trace not found or contains no spans")

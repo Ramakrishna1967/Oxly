@@ -61,7 +61,9 @@ async def ws_trace_feed(websocket: WebSocket, token: str | None = None):
 
         if token:
             try:
-                payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM])
+                payload = jwt.decode(
+                    token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM]
+                )
                 user_id = payload.get("sub")
                 if not user_id and not settings.DEMO_MODE:
                     await websocket.close(code=1008, reason="Invalid token")
@@ -99,7 +101,9 @@ async def ws_trace_feed(websocket: WebSocket, token: str | None = None):
                 except json.JSONDecodeError:
                     logger.warning("Received invalid JSON on websocket")
                     # Send an error back instead of closing
-                    await websocket.send_text(json.dumps({"type": "error", "message": "Invalid JSON format"}))
+                    await websocket.send_text(
+                        json.dumps({"type": "error", "message": "Invalid JSON format"})
+                    )
                     continue
 
                 if message.get("type") == "ping":
@@ -114,4 +118,3 @@ async def ws_trace_feed(websocket: WebSocket, token: str | None = None):
     finally:
         _connections.discard(websocket)
         logger.info("WebSocket client disconnected. Total: %d", len(_connections))
-

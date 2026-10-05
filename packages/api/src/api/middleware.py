@@ -62,7 +62,8 @@ async def rate_limit_middleware(request: Request, call_next: Callable):
         # SECURITY: Periodic cleanup to prevent memory exhaustion
         if current_time - _last_cleanup_time > _RATE_LIMIT_CLEANUP_INTERVAL:
             stale_ips = [
-                ip for ip, timestamps in _rate_limit_store.items()
+                ip
+                for ip, timestamps in _rate_limit_store.items()
                 if not timestamps or (current_time - max(timestamps)) > _RATE_LIMIT_WINDOW
             ]
             for ip in stale_ips:
@@ -74,7 +75,10 @@ async def rate_limit_middleware(request: Request, call_next: Callable):
         # SECURITY: Check max tracked IPs to prevent memory exhaustion
         if len(_rate_limit_store) >= _MAX_TRACKED_IPS and client_ip not in _rate_limit_store:
             # Evict oldest entry to make room
-            oldest_ip = min(_rate_limit_store.keys(), key=lambda k: max(_rate_limit_store[k]) if _rate_limit_store[k] else 0)
+            oldest_ip = min(
+                _rate_limit_store.keys(),
+                key=lambda k: max(_rate_limit_store[k]) if _rate_limit_store[k] else 0,
+            )
             del _rate_limit_store[oldest_ip]
             logger.warning(f"Rate limiter at capacity, evicted IP: {oldest_ip}")
 
@@ -90,7 +94,8 @@ async def rate_limit_middleware(request: Request, call_next: Callable):
         if _EVICTION_COUNTER >= _EVICTION_INTERVAL:
             _EVICTION_COUNTER = 0
             stale_ips = [
-                ip for ip, timestamps in _rate_limit_store.items()
+                ip
+                for ip, timestamps in _rate_limit_store.items()
                 if not timestamps or (current_time - max(timestamps)) > _RATE_LIMIT_WINDOW
             ]
             for ip in stale_ips:

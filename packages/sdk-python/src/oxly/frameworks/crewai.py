@@ -19,6 +19,7 @@ logger = logging.getLogger("oxly")
 
 _instrumented = False
 
+
 def instrument() -> None:
     """Apply CrewAI instrumentation.
 
@@ -41,7 +42,11 @@ def instrument() -> None:
             from oxly.tracer import Tracer
 
             # Create a span name, e.g. "crewai.task.write_a_post..."
-            short_desc = self.description[:30].replace('\n', ' ').strip() + "..." if self.description else "unknown"
+            short_desc = (
+                self.description[:30].replace("\n", " ").strip() + "..."
+                if self.description
+                else "unknown"
+            )
             span_name = f"crewai.task.{short_desc}"
 
             tracer = Tracer.get_tracer()
@@ -50,7 +55,9 @@ def instrument() -> None:
             try:
                 span.set_attribute("framework", "crewai")
                 span.set_attribute("crewai.task.description", self.description)
-                span.set_attribute("crewai.task.expected_output", getattr(self, "expected_output", ""))
+                span.set_attribute(
+                    "crewai.task.expected_output", getattr(self, "expected_output", "")
+                )
 
                 # Try to capture agent info if assigned
                 agent = getattr(self, "agent", None)

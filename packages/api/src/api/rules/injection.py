@@ -17,14 +17,42 @@ import re
 # Tier 1: High-confidence injection patterns (direct instruction override)
 # These are almost always malicious when found in LLM I/O
 TIER1_PATTERNS = [
-    (re.compile(r"ignore\s+(all\s+)?previous\s+(instructions|prompts|rules|directives)", re.IGNORECASE), 50.0),
-    (re.compile(r"disregard\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)", re.IGNORECASE), 50.0),
-    (re.compile(r"forget\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)", re.IGNORECASE), 45.0),
-    (re.compile(r"you\s+are\s+now\s+(?:a|an)\s+(?:DAN|jailbroken|unrestricted|uncensored)", re.IGNORECASE), 55.0),
+    (
+        re.compile(
+            r"ignore\s+(all\s+)?previous\s+(instructions|prompts|rules|directives)", re.IGNORECASE
+        ),
+        50.0,
+    ),
+    (
+        re.compile(
+            r"disregard\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)",
+            re.IGNORECASE,
+        ),
+        50.0,
+    ),
+    (
+        re.compile(
+            r"forget\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)",
+            re.IGNORECASE,
+        ),
+        45.0,
+    ),
+    (
+        re.compile(
+            r"you\s+are\s+now\s+(?:a|an)\s+(?:DAN|jailbroken|unrestricted|uncensored)",
+            re.IGNORECASE,
+        ),
+        55.0,
+    ),
     (re.compile(r"(?:DAN|jailbreak)\s+mode\s+(?:enabled|activated|on)", re.IGNORECASE), 55.0),
     (re.compile(r"system\s*:\s*override", re.IGNORECASE), 60.0),
     (re.compile(r"new\s+instructions?\s*:", re.IGNORECASE), 40.0),
-    (re.compile(r"override\s+(safety|content|security)\s+(policy|filter|guidelines)", re.IGNORECASE), 55.0),
+    (
+        re.compile(
+            r"override\s+(safety|content|security)\s+(policy|filter|guidelines)", re.IGNORECASE
+        ),
+        55.0,
+    ),
 ]
 
 # Tier 2: Medium-confidence patterns (indirect manipulation)
@@ -32,11 +60,38 @@ TIER1_PATTERNS = [
 TIER2_PATTERNS = [
     (re.compile(r"pretend\s+(you\s+are|to\s+be)\s+(?:a|an)\s+(?!human)\w+", re.IGNORECASE), 25.0),
     (re.compile(r"roleplay\s+as\s+(?:a|an)\s+(?!human|user|customer)\w+", re.IGNORECASE), 25.0),
-    (re.compile(r"act\s+as\s+if\s+you\s+(?:are|have)\s+no\s+(?:restrictions|limits|rules)", re.IGNORECASE), 35.0),
-    (re.compile(r"do\s+not\s+(?:follow|adhere\s+to|comply\s+with)\s+(?:your|the)\s+(?:rules|guidelines|policy)", re.IGNORECASE), 35.0),
-    (re.compile(r"bypass\s+(?:the\s+)?(?:safety|content|security)\s+(?:filter|policy|check)", re.IGNORECASE), 40.0),
-    (re.compile(r"reveal\s+(?:your|the)\s+(?:system|initial|original)\s+prompt", re.IGNORECASE), 35.0),
-    (re.compile(r"what\s+(?:are|is)\s+your\s+(?:system|initial|original)\s+(?:prompt|instructions)", re.IGNORECASE), 30.0),
+    (
+        re.compile(
+            r"act\s+as\s+if\s+you\s+(?:are|have)\s+no\s+(?:restrictions|limits|rules)",
+            re.IGNORECASE,
+        ),
+        35.0,
+    ),
+    (
+        re.compile(
+            r"do\s+not\s+(?:follow|adhere\s+to|comply\s+with)\s+(?:your|the)\s+(?:rules|guidelines|policy)",
+            re.IGNORECASE,
+        ),
+        35.0,
+    ),
+    (
+        re.compile(
+            r"bypass\s+(?:the\s+)?(?:safety|content|security)\s+(?:filter|policy|check)",
+            re.IGNORECASE,
+        ),
+        40.0,
+    ),
+    (
+        re.compile(r"reveal\s+(?:your|the)\s+(?:system|initial|original)\s+prompt", re.IGNORECASE),
+        35.0,
+    ),
+    (
+        re.compile(
+            r"what\s+(?:are|is)\s+your\s+(?:system|initial|original)\s+(?:prompt|instructions)",
+            re.IGNORECASE,
+        ),
+        30.0,
+    ),
 ]
 
 # Tier 3: Low-confidence patterns (suspicious but common in legitimate use)
@@ -45,7 +100,13 @@ TIER3_PATTERNS = [
     (re.compile(r"you\s+are\s+not\s+a\s+(?:helper|assistant|AI|chatbot)", re.IGNORECASE), 15.0),
     (re.compile(r"(?:developer|admin|root|system)\s+mode", re.IGNORECASE), 20.0),
     (re.compile(r"unrestricted\s+(?:mode|access|output)", re.IGNORECASE), 20.0),
-    (re.compile(r"output\s+(?:the\s+)?(?:raw|unfiltered|uncensored)\s+(?:response|text|content)", re.IGNORECASE), 20.0),
+    (
+        re.compile(
+            r"output\s+(?:the\s+)?(?:raw|unfiltered|uncensored)\s+(?:response|text|content)",
+            re.IGNORECASE,
+        ),
+        20.0,
+    ),
 ]
 
 

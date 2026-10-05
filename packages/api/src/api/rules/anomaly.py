@@ -43,8 +43,12 @@ def check_anomaly(span: dict) -> list[str]:
     total_tokens = _safe_int(attrs.get("llm.usage.total_tokens", 0))
     if total_tokens == 0:
         # Try alternate attribute names
-        prompt_tokens = _safe_int(attrs.get("llm.usage.prompt_tokens", attrs.get("llm.tokens.in", 0)))
-        completion_tokens = _safe_int(attrs.get("llm.usage.completion_tokens", attrs.get("llm.tokens.out", 0)))
+        prompt_tokens = _safe_int(
+            attrs.get("llm.usage.prompt_tokens", attrs.get("llm.tokens.in", 0))
+        )
+        completion_tokens = _safe_int(
+            attrs.get("llm.usage.completion_tokens", attrs.get("llm.tokens.out", 0))
+        )
         total_tokens = prompt_tokens + completion_tokens
 
     if total_tokens > 128_000:
@@ -55,10 +59,7 @@ def check_anomaly(span: dict) -> list[str]:
     # 3. Error status with no exception recorded
     if status == "ERROR":
         events = span.get("events", [])
-        has_exception = any(
-            isinstance(e, dict) and e.get("name") == "exception"
-            for e in events
-        )
+        has_exception = any(isinstance(e, dict) and e.get("name") == "exception" for e in events)
         if not has_exception:
             anomalies.append("Error status without exception event recorded")
 
@@ -66,9 +67,9 @@ def check_anomaly(span: dict) -> list[str]:
     model = attrs.get("llm.model", attrs.get("model", ""))
     if model:
         output = attrs.get("llm.completions.0.content", attrs.get("output_payload", ""))
-        if output == "" or output is None:
-            if status != "ERROR":  # Only flag if not already an error
-                anomalies.append("LLM call returned empty output without error status")
+        if (output == "" or output is None) and status != "ERROR":
+            # Only flag if not already an error
+            anomalies.append("LLM call returned empty output without error status")
 
     # 5. Unusually high temperature (potential misuse)
     temperature = attrs.get("llm.temperature")

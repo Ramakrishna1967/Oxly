@@ -128,13 +128,16 @@ class UserRegisterRequest(BaseModel):
     """User registration request."""
 
     email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
-    password: str = Field(..., min_length=12, description="Min 12 chars, must include upper, lower, digit")
+    password: str = Field(
+        ..., min_length=12, description="Min 12 chars, must include upper, lower, digit"
+    )
 
     @field_validator("password")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """Validate password complexity."""
         import re
+
         if not re.search(r"[A-Z]", v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not re.search(r"[a-z]", v):

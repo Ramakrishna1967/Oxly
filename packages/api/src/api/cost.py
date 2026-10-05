@@ -51,7 +51,9 @@ def calculate_cost(span: dict) -> dict | None:
 
     # Extract tokens — support both OpenTelemetry-style (llm.usage.*) and SDK-style (llm.tokens.*)
     prompt_tokens = int(attrs.get("llm.usage.prompt_tokens", attrs.get("llm.tokens.in", 0)))
-    completion_tokens = int(attrs.get("llm.usage.completion_tokens", attrs.get("llm.tokens.out", 0)))
+    completion_tokens = int(
+        attrs.get("llm.usage.completion_tokens", attrs.get("llm.tokens.out", 0))
+    )
     total_tokens = int(attrs.get("llm.usage.total_tokens", prompt_tokens + completion_tokens))
 
     if total_tokens == 0:

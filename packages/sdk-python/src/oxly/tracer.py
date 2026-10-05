@@ -176,6 +176,7 @@ class Span:
         # Sanitize PII before export
         try:
             from oxly.sanitizer import scrub_pii
+
             self.attributes = scrub_pii(self.attributes)
         except Exception:
             pass
@@ -222,10 +223,14 @@ class Span:
         )
 
 
-class NoOpSpan:
-    """A lightweight stub when the SDK is disabled."""
+class NoOpSpan(Span):
+    """A lightweight stub when the SDK is disabled.
 
-    __slots__ = ("trace_id", "span_id", "parent_span_id", "name", "_ended")
+    Subclasses Span (without calling its __init__) so that disabled-mode
+    spans remain type-compatible with every Span consumer.
+    """
+
+    __slots__ = ()
 
     def __init__(self, name: str, parent_span_id: str | None = None) -> None:
         self.trace_id = get_current_trace_id() or "0" * 32
@@ -234,10 +239,17 @@ class NoOpSpan:
         self.name = name
         self._ended = False
 
-    def set_attribute(self, key: str, value: Any) -> None: pass
-    def set_status(self, status: SpanStatus, message: str | None = None) -> None: pass
-    def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None: pass
-    def record_exception(self, exc: BaseException) -> None: pass
+    def set_attribute(self, key: str, value: Any) -> None:
+        pass
+
+    def set_status(self, status: SpanStatus, message: str | None = None) -> None:
+        pass
+
+    def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None:
+        pass
+
+    def record_exception(self, exc: BaseException) -> None:
+        pass
 
     def end(self) -> None:
         self._ended = True

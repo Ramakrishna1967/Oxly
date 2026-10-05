@@ -67,7 +67,7 @@ class BatchSpanProcessor:
         self._local_store = local_store or get_local_store()
         self._batch_size = batch_size
         self._export_interval = export_interval_s
-        self._buffer = RingBuffer(capacity=max_queue_size)
+        self._buffer: RingBuffer[Span] = RingBuffer(capacity=max_queue_size)
 
         # Background thread control
         self._shutdown_event = threading.Event()
@@ -126,7 +126,7 @@ class BatchSpanProcessor:
 
         while not self._shutdown_event.is_set():
             # Wait for flush signal or timeout
-            triggered = self._flush_event.wait(timeout=self._export_interval)
+            self._flush_event.wait(timeout=self._export_interval)
             self._flush_event.clear()
 
             # Drain and export
@@ -169,6 +169,7 @@ class BatchSpanProcessor:
 
             try:
                 from oxly.metrics import get_metrics
+
                 get_metrics().record_export(len(export_dicts), latency_ms, result.success)
                 if not result.success:
                     get_metrics().increment("export_retries")
@@ -179,7 +180,9 @@ class BatchSpanProcessor:
                 self._exported_count += len(export_dicts)
                 logger.debug(
                     "Exported %d spans (total: %d, latency: %.1fms)",
-                    len(export_dicts), self._exported_count, latency_ms
+                    len(export_dicts),
+                    self._exported_count,
+                    latency_ms,
                 )
                 return
             else:
@@ -191,10 +194,13 @@ class BatchSpanProcessor:
         self._fallback_count += saved
         try:
             from oxly.metrics import get_metrics
+
             get_metrics().increment("local_store_saves", saved)
         except ImportError:
             pass
-        logger.debug("Saved %d spans to local store (total fallback: %d)", saved, self._fallback_count)
+        logger.debug(
+            "Saved %d spans to local store (total fallback: %d)", saved, self._fallback_count
+        )
 
     def _retry_unsent(self) -> None:
         """Attempt to re-export spans saved in the local store."""
@@ -207,6 +213,7 @@ class BatchSpanProcessor:
             logger.debug("Failed to retrieve unsent spans from local store", exc_info=True)
             try:
                 from oxly.metrics import get_metrics
+
                 get_metrics().increment("local_store_errors")
             except ImportError:
                 pass
@@ -224,6 +231,7 @@ class BatchSpanProcessor:
             self._exported_count += len(span_ids)
             try:
                 from oxly.metrics import get_metrics
+
                 get_metrics().increment("local_store_retrievals", len(span_ids))
             except ImportError:
                 pass
@@ -248,7 +256,9 @@ class BatchSpanProcessor:
 
         logger.debug(
             "Exporter shutdown: exported=%d, failed=%d, fallback=%d",
-            self._exported_count, self._failed_count, self._fallback_count,
+            self._exported_count,
+            self._failed_count,
+            self._fallback_count,
         )
 
     @property

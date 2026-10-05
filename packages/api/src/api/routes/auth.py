@@ -48,7 +48,9 @@ async def _check_login_rate_limit(email: str, db: aiosqlite.Connection) -> None:
 
 async def _record_failed_login(email: str, db: aiosqlite.Connection) -> None:
     """Record a failed login attempt."""
-    async with db.execute("SELECT failed_login_attempts FROM users WHERE email = ?", (email,)) as cursor:
+    async with db.execute(
+        "SELECT failed_login_attempts FROM users WHERE email = ?", (email,)
+    ) as cursor:
         row = await cursor.fetchone()
     if not row:
         return
@@ -58,12 +60,11 @@ async def _record_failed_login(email: str, db: aiosqlite.Connection) -> None:
         locked_until = datetime.now(timezone.utc) + timedelta(seconds=_LOCKOUT_SECONDS)
         await db.execute(
             "UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE email = ?",
-            (attempts, locked_until.isoformat(), email)
+            (attempts, locked_until.isoformat(), email),
         )
     else:
         await db.execute(
-            "UPDATE users SET failed_login_attempts = ? WHERE email = ?",
-            (attempts, email)
+            "UPDATE users SET failed_login_attempts = ? WHERE email = ?", (attempts, email)
         )
     await db.commit()
 
@@ -71,8 +72,7 @@ async def _record_failed_login(email: str, db: aiosqlite.Connection) -> None:
 async def _clear_login_attempts(email: str, db: aiosqlite.Connection) -> None:
     """Clear login attempts on successful login."""
     await db.execute(
-        "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE email = ?",
-        (email,)
+        "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE email = ?", (email,)
     )
     await db.commit()
 
@@ -84,7 +84,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -103,9 +105,7 @@ async def register(
     Password is hashed with pbkdf2_sha256.
     """
     # Check if email already exists
-    async with db.execute(
-        "SELECT id FROM users WHERE email = ?", (request_body.email,)
-    ) as cursor:
+    async with db.execute("SELECT id FROM users WHERE email = ?", (request_body.email,)) as cursor:
         existing = await cursor.fetchone()
 
     if existing:

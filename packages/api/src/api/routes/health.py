@@ -57,9 +57,7 @@ async def health_check(request: Request):
     retention_ok = _task_alive(getattr(request.app.state, "retention_task", None))
     # No app.state outside lifespan (tests) — don't report red for that.
     has_lifespan = hasattr(request.app.state, "span_queue")
-    retention_status = (
-        "operational" if retention_ok or not has_lifespan else "down"
-    )
+    retention_status = "operational" if retention_ok or not has_lifespan else "down"
 
     services = {
         "api": "operational",

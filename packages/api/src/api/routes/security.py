@@ -74,7 +74,7 @@ async def list_security_alerts(
                 trace_id=row["trace_id"],
                 span_id=row["span_id"],
                 project_id=row["project_id"],
-                severity=SecurityAlertSeverity(row["severity"].lower()), # Normalize case
+                severity=SecurityAlertSeverity(row["severity"].lower()),  # Normalize case
                 alert_type=row["alert_type"],
                 message=row["message"],
                 metadata=metadata,

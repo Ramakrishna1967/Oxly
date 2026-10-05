@@ -72,15 +72,15 @@ async def ingest_traces(
         try:
             with gzip.GzipFile(fileobj=io.BytesIO(body_bytes)) as gz:
                 body_bytes = gz.read(MAX_DECOMPRESSED_BYTES + 1)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid gzip payload")
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid gzip payload") from exc
         if len(body_bytes) > MAX_DECOMPRESSED_BYTES:
             raise HTTPException(status_code=413, detail="Decompressed payload too large (max 50MB)")
 
     try:
         body = json.loads(body_bytes)
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON") from exc
 
     spans_input = (
         body.get("spans", [])

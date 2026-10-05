@@ -18,6 +18,7 @@ logger = logging.getLogger("oxly")
 
 _instrumented = False
 
+
 def instrument() -> None:
     """Apply AutoGen instrumentation.
 

@@ -29,6 +29,7 @@ __all__ = [
     "init",
     "Tracer",
     "Span",
+    "OxlyConfig",
     "__version__",
 ]
 
@@ -79,6 +80,7 @@ def init(
     if auto_instrument:
         try:
             from oxly.frameworks import auto_instrument as perform_auto_instrument
+
             perform_auto_instrument()
         except Exception:
             logger.debug("Auto-instrumentation failed", exc_info=True)
@@ -94,9 +96,7 @@ def init(
 
     if config.debug:
         handler = logging.StreamHandler()
-        handler.setFormatter(
-            logging.Formatter("[oxly] %(levelname)s %(name)s: %(message)s")
-        )
+        handler.setFormatter(logging.Formatter("[oxly] %(levelname)s %(name)s: %(message)s"))
         oxly_logger = logging.getLogger("oxly")
         if not oxly_logger.handlers:
             oxly_logger.addHandler(handler)
