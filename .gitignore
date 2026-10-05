@@ -66,5 +66,4 @@ deploy/.env
 .claude/
 skills-lock.json
 brag-output*/
-shotcraft-oxly/
 shotcraft-*/
