@@ -8,12 +8,11 @@ import asyncio
 import pytest
 
 from oxly.decorator import observe
-from oxly.models import SpanStatus
-from oxly.tracer import Tracer
 
 
 def test_observe_sync_function():
     """Test @observe on a synchronous function."""
+
     @observe
     def add(x, y):
         return x + y
@@ -24,6 +23,7 @@ def test_observe_sync_function():
 
 def test_observe_custom_name():
     """Test @observe with custom span name."""
+
     @observe(name="custom.operation")
     def multiply(x, y):
         return x * y
@@ -34,6 +34,7 @@ def test_observe_custom_name():
 
 def test_observe_async_function():
     """Test @observe on an async function."""
+
     @observe
     async def async_add(x, y):
         await asyncio.sleep(0.01)
@@ -45,6 +46,7 @@ def test_observe_async_function():
 
 def test_observe_exception_reraised():
     """Test that exceptions are re-raised after recording."""
+
     @observe
     def fail():
         raise ValueError("boom")
@@ -55,6 +57,7 @@ def test_observe_exception_reraised():
 
 def test_observe_async_exception_reraised():
     """Test that async exceptions are re-raised."""
+
     @observe
     async def async_fail():
         raise RuntimeError("async boom")
@@ -65,6 +68,7 @@ def test_observe_async_exception_reraised():
 
 def test_observe_capture_args_false():
     """Test capture_args=False option."""
+
     @observe(capture_args=False)
     def secret_func(password):
         return "ok"
@@ -75,6 +79,7 @@ def test_observe_capture_args_false():
 
 def test_observe_capture_result_false():
     """Test capture_result=False option."""
+
     @observe(capture_result=False)
     def compute():
         return 42
@@ -85,6 +90,7 @@ def test_observe_capture_result_false():
 
 def test_observe_nested_calls():
     """Test that nested @observe calls create parent-child spans."""
+
     @observe(name="outer")
     def outer():
         return inner()
@@ -99,6 +105,7 @@ def test_observe_nested_calls():
 
 def test_observe_with_return_value():
     """Test function return value is preserved."""
+
     @observe
     def get_data():
         return {"key": "value"}
@@ -110,6 +117,7 @@ def test_observe_with_return_value():
 
 def test_observe_with_multiple_args():
     """Test capturing multiple arguments."""
+
     @observe
     def multi_arg(a, b, c=10, d="test"):
         return a + b + c

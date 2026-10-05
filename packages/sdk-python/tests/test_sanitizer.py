@@ -3,8 +3,6 @@
 
 """Tests for PII sanitizer."""
 
-import pytest
-
 from oxly.sanitizer import (
     REDACTED_AWS_KEY,
     REDACTED_CC,
@@ -71,9 +69,7 @@ def test_scrub_openai_key():
 
 def test_scrub_multiple_pii_types():
     """Test multiple PII types in one string."""
-    attrs = {
-        "data": "SSN: 123-45-6789, Email: test@example.com, Card: 4111111111111111"
-    }
+    attrs = {"data": "SSN: 123-45-6789, Email: test@example.com, Card: 4111111111111111"}
     result = scrub_pii(attrs)
     assert REDACTED_SSN in result["data"]
     assert REDACTED_EMAIL in result["data"]
@@ -103,7 +99,7 @@ def test_scrub_value_nested():
             "contacts": [
                 {"email": "john@example.com"},
                 {"phone": "555-123-4567"},
-            ]
+            ],
         }
     }
     result = scrub_value(data)
@@ -122,11 +118,13 @@ def test_scrub_value_string():
 
 def test_scrub_value_list():
     """Test scrub_value on a list."""
-    result = scrub_value([
-        "Email: test@example.com",
-        "Phone: 555-123-4567",
-        "Safe text",
-    ])
+    result = scrub_value(
+        [
+            "Email: test@example.com",
+            "Phone: 555-123-4567",
+            "Safe text",
+        ]
+    )
     assert REDACTED_EMAIL in result[0]
     assert REDACTED_PHONE in result[1]
     assert result[2] == "Safe text"

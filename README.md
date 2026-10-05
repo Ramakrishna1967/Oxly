@@ -422,7 +422,7 @@ The result is the single-process architecture described above — the same featu
 
 ## Known Follow-ups
 
-Previously tracked here, now resolved (verified 2026-10-05, API tests 24 passed, SDK 63 passed):
+Previously tracked here, now resolved (verified 2026-10-06, API tests 66 passed + 1 skipped, SDK 63 passed, ruff clean, dashboard build clean):
 
 - ~~**`DATABASE_URL` non-Docker default is broken.**~~ Fixed — `api/db.py` now resolves bare/relative values against `Path.cwd()` (container behavior unchanged since CWD is `/app`), handles Windows drive-letter URLs (`sqlite+aiosqlite:///C:/...`), and creates parent dirs on init.
 - ~~**`DEMO_MODE` + create-project 500s.**~~ Fixed — `init_db()` seeds a `demo` user row when `DEMO_MODE=true`, so `POST /api/v1/projects` no longer fails its `user_projects` FK insert.

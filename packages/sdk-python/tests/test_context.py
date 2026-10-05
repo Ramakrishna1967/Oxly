@@ -113,14 +113,12 @@ def test_thread_context_isolation():
         span = tracer.start_span(name)
         with span_context(span):
             import time
+
             time.sleep(0.01)
             return get_current_trace_id()
 
     with ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [
-            executor.submit(worker, f"thread{i}")
-            for i in range(3)
-        ]
+        futures = [executor.submit(worker, f"thread{i}") for i in range(3)]
         trace_ids = [f.result() for f in futures]
 
     # Each thread should have its own trace_id
@@ -175,9 +173,8 @@ def test_span_context_depth_limit_does_not_swallow_exceptions():
             entered.append(cm)
 
         overflow_span = tracer.start_span("overflow")
-        with pytest.raises(ValueError, match="real error"):
-            with span_context(overflow_span):
-                raise ValueError("real error")
+        with pytest.raises(ValueError, match="real error"), span_context(overflow_span):
+            raise ValueError("real error")
     finally:
         for cm in reversed(entered):
             cm.__exit__(None, None, None)

@@ -44,6 +44,13 @@ class State(TypedDict):
     summary: Optional[str]
     email_draft: Optional[str]
 
+try:
+    from langgraph.graph import END, StateGraph
+except ImportError:
+    # Optional demo dependency — build_graph() raises a clear error below.
+    StateGraph = None  # type: ignore[assignment,misc]
+    END = None  # type: ignore[assignment]
+
 @observe(name="langgraph.node.retrieve_context")
 def retrieve_context(state: State):
     """Simulates retrieving context from a Vector DB."""
@@ -111,6 +118,8 @@ def write_email(state: State):
     return {"email_draft": email_draft}
 
 def build_graph():
+    if StateGraph is None:
+        raise RuntimeError("langgraph is not installed — pip install langgraph to run this demo.")
     graph = StateGraph(State)
     graph.add_node("retrieve_context", retrieve_context)
     graph.add_node("summarize_context", summarize_context)

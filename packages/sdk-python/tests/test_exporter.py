@@ -5,12 +5,9 @@
 
 import time
 
-import pytest
-
 from oxly._internal.buffer import RingBuffer
 from oxly._internal.transport import HttpTransport
 from oxly.exporter import BatchSpanProcessor, get_processor, reset_processor
-from oxly.models import SpanModel
 from oxly.tracer import Span
 
 
@@ -145,6 +142,7 @@ def test_batch_span_processor_graceful_shutdown(local_store):
 def test_get_processor_singleton():
     """Test get_processor returns a singleton."""
     import os
+
     os.environ["OXLY_ENABLED"] = "true"
 
     reset_processor()
@@ -161,10 +159,12 @@ def test_get_processor_singleton():
 def test_get_processor_disabled():
     """Test get_processor returns None when SDK is disabled."""
     import os
+
     os.environ["OXLY_ENABLED"] = "false"
 
     reset_processor()
     from oxly.config import reset_config
+
     reset_config()
 
     processor = get_processor()

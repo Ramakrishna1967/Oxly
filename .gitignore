@@ -60,3 +60,11 @@ Desktop.ini
 deploy/.env
 .obsidian/
 2026-05-17.md
+
+# ── Local agent/tool artifacts (never commit) ──────────────────────────
+.agents/
+.claude/
+skills-lock.json
+brag-output*/
+shotcraft-oxly/
+shotcraft-*/

@@ -3,11 +3,9 @@
 
 """Tests for Tracer and Span classes."""
 
-import pytest
-
 from oxly.context import clear_context, get_current_trace_id, span_context
 from oxly.models import SpanStatus
-from oxly.tracer import Span, Tracer
+from oxly.tracer import Tracer
 
 
 def test_tracer_singleton():

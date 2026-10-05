@@ -4,7 +4,6 @@
 """Tests for SDK metrics collection."""
 
 import threading
-import time
 
 from oxly.metrics import SDKMetrics, get_metrics
 
