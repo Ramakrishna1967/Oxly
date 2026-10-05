@@ -1,4 +1,4 @@
-# Security Triage (Phase 4)
+# Security Triage (Phase 5)
 
 Triage prompt-injection, PII, and anomaly alerts using Oxly's project-scoped,
 read-only MCP tools at `/mcp`. Auth: pass the project's SDK API key
@@ -30,3 +30,8 @@ alert_type (rule_name), message, metadata (object), created_at`.
   project. Do not distinguish the two cases.
 - Start with `severity=high` (or `critical`) for the typical triage flow,
   then widen to unfiltered when the queue is clear.
+
+## Phase 5 notes
+
+- `query_security_alerts` returns `total` + `count` + echoed
+  `limit`/`offset` (max 100, `offset` for paging).

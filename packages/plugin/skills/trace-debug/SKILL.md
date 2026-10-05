@@ -1,4 +1,4 @@
-# Trace Debug (Phase 4)
+# Trace Debug (Phase 5)
 
 Debug a failing agent run using Oxly's project-scoped, read-only MCP tools
 at `/mcp` (Streamable HTTP). Auth is identical on every call: pass the
@@ -35,3 +35,9 @@ an explicit `project_id` for local exploration only.
 - `unknown project` — bad `api_key` or mismatched `project_id`.
 - `unknown trace` / `unknown span` — id not found *or* not in the key's
   project. Never confirm whether an id exists in another project.
+
+## Phase 5 notes
+
+- `query_traces` returns `total` + echoed `limit`/`offset` (max 50).
+- `get_trace` `span_count` is the true total; `spans_truncated=true`
+  when capped at 200.

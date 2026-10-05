@@ -37,6 +37,15 @@ def reset_db():
     import api.db as db_module
 
     db_module._db = None
+    # The IP rate limiter is a module-global store; TestClient requests all
+    # share one IP, so without a reset any single pytest process running
+    # 100+ requests trips 429s (flaky suite). Test-only reset, no prod impact.
+    import api.middleware as middleware_module
+
+    middleware_module._rate_limit_store.clear()
+    yield
+    db_module._db = None
+    middleware_module._rate_limit_store.clear()
     yield
     db_module._db = None
 

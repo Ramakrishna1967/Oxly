@@ -3,14 +3,14 @@
   "info": {
     "title": "Oxly Plugin",
     "version": "0.1.0-alpha",
-    "description": "Phase 4 discovery doc: Oxly MCP lives at /mcp (Streamable HTTP, protocol 2025-06-18) with 6 project-scoped read-only tools. REST auth stays on JWT; MCP auth uses the project ak_... key per tool call."
+    "description": "Phase 5 discovery doc: Oxly MCP lives at /mcp (Streamable HTTP, protocol 2025-06-18) with 6 project-scoped read-only tools. REST auth stays on JWT; MCP auth uses the project ak_... key per tool call (DEMO_MODE=true allows keyless calls with explicit project_id). Phase 5 adds consistent pagination (total/limit/offset), strict status/severity/interval validation, and true total span_count on get_trace."
   },
   "servers": [{ "url": "/" }],
   "paths": {
     "/mcp": {
       "post": {
         "summary": "MCP Streamable HTTP endpoint",
-        "description": "JSON-RPC: initialize, notifications/initialized, tools/list (6 tools), tools/call. Pass api_key (ak_...) on every call; optional project_id must match.",
+        "description": "JSON-RPC: initialize, notifications/initialized, tools/list (6 tools), tools/call. Pass api_key (ak_...) on every call; optional project_id must match. List tools return total + limit/offset echo; get_trace caps spans at 200 with spans_truncated flag.",
         "responses": { "200": { "description": "JSON-RPC response or SSE stream" } }
       }
     },
@@ -20,8 +20,104 @@
     "/plugin/mcp.json": {
       "get": { "summary": "MCP client config", "responses": { "200": { "description": "mcp.json" } } }
     },
+    "/plugin/openapi.json": {
+      "get": { "summary": "Discovery doc (this file)", "responses": { "200": { "description": "openapi.json" } } }
+    },
+    "/.well-known/oxly-plugin.json": {
+      "get": { "summary": "Discovery alias (canonical manifest)", "responses": { "200": { "description": "plugin.json" } } }
+    },
+    "/.well-known/ai-plugin.json": {
+      "get": { "summary": "Legacy ChatGPT discovery alias", "responses": { "200": { "description": "plugin.json" } } }
+    },
     "/api/v1/health": {
       "get": { "summary": "API health", "responses": { "200": { "description": "{status, services:{api,sqlite,queue,retention}}" } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiKeyAuth": {
+        "type": "object",
+        "description": "Project scoping: api_key (ak_...) scopes to its project; optional project_id must match or the tool fails with `unknown project`. DEMO_MODE=true allows omitting api_key with an explicit project_id.",
+        "properties": {
+          "api_key": { "type": "string", "description": "Project SDK key (ak_...). Omit only with DEMO_MODE=true + explicit project_id." },
+          "project_id": { "type": "string", "description": "Optional; must match the key's project." }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "description": "Consistent Phase 5 pagination: total is the full result count; limit/offset are the clamped, echoed inputs.",
+        "properties": {
+          "total": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" },
+          "count": { "type": "integer", "description": "Page size (kept on query_security_alerts for compat; equals len(alerts))." }
+        }
+      },
+      "ToolList": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["query_traces", "get_trace", "get_span", "query_security_alerts", "cost_summary", "whoami"] }
+      },
+      "QueryTracesArgs": {
+        "type": "object",
+        "properties": {
+          "api_key": { "type": "string" },
+          "project_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["OK", "ERROR"], "description": "Case-insensitive; anything else fails with `unknown status`." },
+          "limit": { "type": "integer", "default": 20, "maximum": 50 },
+          "offset": { "type": "integer", "default": 0 }
+        }
+      },
+      "QueryAlertsArgs": {
+        "type": "object",
+        "properties": {
+          "api_key": { "type": "string" },
+          "project_id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"], "description": "Case-insensitive; anything else fails with `unknown severity`." },
+          "limit": { "type": "integer", "default": 25, "maximum": 100 },
+          "offset": { "type": "integer", "default": 0 }
+        }
+      },
+      "GetTraceArgs": {
+        "type": "object",
+        "required": ["trace_id"],
+        "properties": {
+          "trace_id": { "type": "string" },
+          "api_key": { "type": "string" },
+          "project_id": { "type": "string" }
+        },
+        "description": "Returns full trace with spans in replay order (max 200 spans, spans_truncated flag, span_count is the true total)."
+      },
+      "GetSpanArgs": {
+        "type": "object",
+        "required": ["span_id"],
+        "properties": {
+          "span_id": { "type": "string" },
+          "api_key": { "type": "string" },
+          "project_id": { "type": "string" }
+        }
+      },
+      "CostSummaryArgs": {
+        "type": "object",
+        "properties": {
+          "api_key": { "type": "string" },
+          "project_id": { "type": "string" },
+          "interval": { "type": "string", "enum": ["hour", "day", "week"], "default": "day" },
+          "start_date": { "type": "integer", "description": "Unix seconds; must be <= end_date when both given." },
+          "end_date": { "type": "integer", "description": "Unix seconds." }
+        }
+      },
+      "ErrorModel": {
+        "type": "object",
+        "description": "No cross-project oracle: bad key, mismatched project_id, and out-of-scope ids are indistinguishable by design.",
+        "properties": {
+          "unknown_project": { "type": "string", "description": "Bad api_key or mismatched project_id." },
+          "unknown_trace": { "type": "string", "description": "id not found OR not in the key's project." },
+          "unknown_span": { "type": "string", "description": "id not found OR not in the key's project." },
+          "unknown_status": { "type": "string", "description": "status must be OK | ERROR." },
+          "unknown_severity": { "type": "string", "description": "severity must be low | medium | high | critical." },
+          "unknown_interval": { "type": "string", "description": "interval must be hour | day | week." }
+        }
+      }
     }
   }
 }

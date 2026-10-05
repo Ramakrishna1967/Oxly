@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Phase 5 production hardening: `plugin.json` phase 5 (superset of phase 4), full `/plugin/openapi.json` with tool + pagination + error schemas, status UI Phase 5 pagination section, skill pack bumped to phase 5
+- MCP consistency Phase 5: list tools return `total` + echoed `limit`/`offset` (`count` kept on alerts), `get_trace` true total `span_count` via COUNT, `cost_summary` validates `start_date <= end_date`, non-integer `limit`/`offset`/timestamps rejected, `whoami` DEMO_MODE keyless with explicit `project_id`, `test_mcp_phase4.py` manifest check forward-compatible (`>= 4`)
 - Phase 4 plugin hardening: `plugin.json` phase 4 with `legal`/`openapi`/`rateLimits` metadata, legacy `/.well-known/ai-plugin.json` alias, `/plugin/openapi.json` discovery doc, status UI with live MCP `initialize` check + dashboard deep links
 - MCP consistency: `query_traces(status)` validates `OK | ERROR`, `query_security_alerts` gains `offset` paging, `get_trace`/`get_span`/`whoami` accept optional matching `project_id` (mismatch -> `unknown project`)
 - Single-process architecture: ingestion, cost/security/storage pipeline, REST, WebSocket, and dashboard static hosting folded into `packages/api` (SQLite + in-process `asyncio.Queue`); Redis/ClickHouse/collector/workers removed

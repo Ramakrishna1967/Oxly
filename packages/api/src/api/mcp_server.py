@@ -1,7 +1,7 @@
 # Copyright 2026 Oxly Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Oxly MCP server (Phase 4: production-ready project-scoped tools).
+"""Oxly MCP server (Phase 5: production-hardened project-scoped tools).
 
 Exposes a Streamable HTTP MCP endpoint with read-only observability tools:
 
@@ -79,6 +79,48 @@ except Exception as exc:  # pragma: no cover - import-time guard for minimal env
 _VALID_SEVERITIES = ("low", "medium", "high", "critical")
 _VALID_INTERVALS = ("hour", "day", "week")
 _VALID_STATUSES = ("OK", "ERROR")
+
+# Phase 5: consistent pagination caps shared by list tools.
+_QUERY_TRACES_MAX_LIMIT = 50
+_QUERY_ALERTS_MAX_LIMIT = 100
+_GET_TRACE_MAX_SPANS = 200
+
+
+def _coerce_limit(value: Any, default: int, max_value: int, name: str) -> int:
+    """Coerce limit/offset-style args to int with a clear tool error.
+
+    MCP clients occasionally send numbers as strings; reject anything
+    non-numeric with the same no-oracle ``unknown ...`` style error
+    model instead of raising an unhandled TypeError (which surfaces as
+    a generic ``Error executing tool`` without context).
+    """
+    if value is None:
+        return default
+    try:
+        iv = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        _fail(f"unknown {name} '{value}': must be an integer")
+    return iv
+
+
+def _coerce_offset(value: Any) -> int:
+    if value is None:
+        return 0
+    try:
+        iv = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        _fail(f"unknown offset '{value}': must be an integer")
+    return max(0, iv)
+
+
+def _coerce_unix_ts(value: Any, name: str) -> int | None:
+    if value is None:
+        return None
+    try:
+        iv = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        _fail(f"unknown {name} '{value}': must be Unix seconds")
+    return iv
 
 
 def _fail(message: str) -> NoReturn:
@@ -198,13 +240,23 @@ def _time_bucket_expr(interval: str) -> str:
 
 
 def build_mcp_server() -> MCPServer:
-    """Build a fresh Oxly MCPServer with the Phase 4 read-only toolset.
+    """Build a fresh Oxly MCPServer with the Phase 5 read-only toolset.
 
-    Phase 4 keeps the 6 Phase-2 tools with consistent pagination/filtering:
-    ``query_traces`` validates ``status`` (OK/ERROR) and clamps limit/offset;
-    ``query_security_alerts`` gains ``offset`` for queue paging; ``get_trace``,
-    ``get_span`` and ``whoami`` accept an optional ``project_id`` that must
-    match the key's project (same no-oracle ``unknown project`` contract).
+    Phase 5 keeps the 6 Phase-2 tools with a consistent pagination and
+    validation contract:
+    - ``query_traces`` / ``query_security_alerts`` return ``total`` plus
+      echoed ``limit``/``offset`` (``count`` kept on alerts for compat);
+      ``status``/``severity`` validated case-insensitively; non-integer
+      ``limit``/``offset`` rejected with a clear tool error.
+    - ``get_trace`` reports the true total span count via a separate
+      COUNT query (``span_count`` is the total, ``spans`` capped at 200
+      with ``spans_truncated`` flag).
+    - ``cost_summary`` validates ``start_date <= end_date`` and rejects
+      non-integer timestamps.
+    - ``get_trace`` / ``get_span`` / ``whoami`` accept an optional
+      ``project_id`` that must match the key's project (same no-oracle
+      ``unknown project`` contract); ``whoami`` also supports DEMO_MODE
+      keyless calls with an explicit ``project_id``.
 
     A fresh instance per FastAPI app is required because
     ``StreamableHTTPSessionManager.run()`` can only be entered once per
@@ -229,7 +281,7 @@ def build_mcp_server() -> MCPServer:
 
     @server.tool()
     async def query_traces(
-        api_key: str,
+        api_key: str | None = None,
         project_id: str | None = None,
         status: str | None = None,
         limit: int = 20,
@@ -237,8 +289,9 @@ def build_mcp_server() -> MCPServer:
     ) -> dict:
         """List traces for the key's project, newest first, with span counts."""
         scope = await _resolve_scope(api_key, project_id)
-        limit = max(1, min(limit, 50))
-        offset = max(0, offset)
+        limit = _coerce_limit(limit, 20, _QUERY_TRACES_MAX_LIMIT, "limit")
+        limit = max(1, min(limit, _QUERY_TRACES_MAX_LIMIT))
+        offset = _coerce_offset(offset)
         filters = ["t.project_id = ?"]
         params: list[Any] = [scope]
         if status:
@@ -284,10 +337,18 @@ def build_mcp_server() -> MCPServer:
                     "span_count": row["span_count"],
                 }
             )
-        return {"project_id": scope, "total": total, "traces": items}
+        return {
+            "project_id": scope,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "traces": items,
+        }
 
     @server.tool()
-    async def get_trace(trace_id: str, api_key: str, project_id: str | None = None) -> dict:
+    async def get_trace(
+        trace_id: str, api_key: str | None = None, project_id: str | None = None
+    ) -> dict:
         """Get one trace with all its spans ordered by start time (replay order)."""
         key = _require_api_key(api_key)
         scope: str | None = None
@@ -313,10 +374,17 @@ def build_mcp_server() -> MCPServer:
                     _fail("unknown trace")
             elif not await verify_project_ownership(conn, "demo", trace_project):
                 _fail("unknown trace")
+            # Phase 5: true total span count (page is capped at 200 + probe row).
+            async with conn.execute(
+                "SELECT COUNT(*) FROM spans WHERE trace_id = ?",
+                (trace_id,),
+            ) as cursor:
+                count_row = await cursor.fetchone()
+            total_spans = int(count_row[0]) if count_row else len(rows)
         finally:
             await conn.close()
-        spans = [_span_to_dict(r) for r in rows[:200]]
-        truncated = len(rows) > 200
+        spans = [_span_to_dict(r) for r in rows[:_GET_TRACE_MAX_SPANS]]
+        truncated = total_spans > _GET_TRACE_MAX_SPANS
         starts = [s["start_time"] for s in spans]
         ends = [s["end_time"] for s in spans]
         statuses = {s["status"] for s in spans}
@@ -327,13 +395,15 @@ def build_mcp_server() -> MCPServer:
             "end_time": max(ends),
             "duration_ms": (max(ends) - min(starts)) / 1e6,
             "status": "ERROR" if "ERROR" in statuses else "OK",
-            "span_count": len(rows),
+            "span_count": total_spans,
             "spans_truncated": truncated,
             "spans": spans,
         }
 
     @server.tool()
-    async def get_span(span_id: str, api_key: str, project_id: str | None = None) -> dict:
+    async def get_span(
+        span_id: str, api_key: str | None = None, project_id: str | None = None
+    ) -> dict:
         """Get a single span by id (arguments, timing, status, events)."""
         key = _require_api_key(api_key)
         scope: str | None = None
@@ -361,7 +431,7 @@ def build_mcp_server() -> MCPServer:
 
     @server.tool()
     async def query_security_alerts(
-        api_key: str,
+        api_key: str | None = None,
         project_id: str | None = None,
         severity: str | None = None,
         limit: int = 25,
@@ -369,8 +439,9 @@ def build_mcp_server() -> MCPServer:
     ) -> dict:
         """List security alerts (prompt injection, PII, anomaly), newest first."""
         scope = await _resolve_scope(api_key, project_id)
-        limit = max(1, min(limit, 100))
-        offset = max(0, offset)
+        limit = _coerce_limit(limit, 25, _QUERY_ALERTS_MAX_LIMIT, "limit")
+        limit = max(1, min(limit, _QUERY_ALERTS_MAX_LIMIT))
+        offset = _coerce_offset(offset)
         filters = ["project_id = ?"]
         params: list[Any] = [scope]
         if severity:
@@ -389,6 +460,12 @@ def build_mcp_server() -> MCPServer:
         db = get_database()
         conn = await db.get_connection()
         try:
+            async with conn.execute(
+                f"SELECT COUNT(*) FROM security_alerts {where_sql}",  # nosec B608
+                params,
+            ) as cursor:
+                count_row = await cursor.fetchone()
+            total = int(count_row[0]) if count_row else 0
             async with conn.execute(
                 alerts_sql,
                 params + [limit, offset],
@@ -410,11 +487,18 @@ def build_mcp_server() -> MCPServer:
             }
             for r in rows
         ]
-        return {"project_id": scope, "count": len(alerts), "alerts": alerts}
+        return {
+            "project_id": scope,
+            "total": total,
+            "count": len(alerts),
+            "limit": limit,
+            "offset": offset,
+            "alerts": alerts,
+        }
 
     @server.tool()
     async def cost_summary(
-        api_key: str,
+        api_key: str | None = None,
         project_id: str | None = None,
         interval: str = "day",
         start_date: int | None = None,
@@ -428,14 +512,18 @@ def build_mcp_server() -> MCPServer:
         iv = (interval or "day").strip().lower()
         if iv not in _VALID_INTERVALS:
             _fail(f"unknown interval '{interval}': use one of {', '.join(_VALID_INTERVALS)}")
+        start_ts = _coerce_unix_ts(start_date, "start_date")
+        end_ts = _coerce_unix_ts(end_date, "end_date")
+        if start_ts is not None and end_ts is not None and start_ts > end_ts:
+            _fail(f"unknown date range '{start_date}..{end_date}': start_date must be <= end_date")
         clauses = ["project_id = ?"]
         params: list[Any] = [scope]
-        if start_date is not None:
+        if start_ts is not None:
             clauses.append("timestamp >= ?")
-            params.append(start_date)
-        if end_date is not None:
+            params.append(start_ts)
+        if end_ts is not None:
             clauses.append("timestamp <= ?")
-            params.append(end_date)
+            params.append(end_ts)
         where_sql = f"WHERE {' AND '.join(clauses)}"
         bucket = _time_bucket_expr(iv)
         # bucket is allowlisted, where_sql uses static fragments; values bound.
@@ -509,11 +597,33 @@ def build_mcp_server() -> MCPServer:
         }
 
     @server.tool()
-    async def whoami(api_key: str, project_id: str | None = None) -> dict:
+    async def whoami(api_key: str | None = None, project_id: str | None = None) -> dict:
         """Confirm which project an API key is scoped to (id, name, created_at)."""
         key = _require_api_key(api_key)
         if not key:
-            _fail("project_id is required when no api_key is given")
+            # Phase 5: DEMO_MODE keyless path mirrors _resolve_scope — an
+            # explicit project_id resolves against the synthetic demo owner.
+            if not project_id:
+                _fail("project_id is required when no api_key is given")
+            db_demo = get_database()
+            conn_demo = await db_demo.get_connection()
+            try:
+                if not await verify_project_ownership(conn_demo, "demo", project_id):
+                    _fail("unknown project")
+                async with conn_demo.execute(
+                    "SELECT id, name, created_at FROM projects WHERE id = ?",
+                    (project_id,),
+                ) as cursor:
+                    demo_row = await cursor.fetchone()
+            finally:
+                await conn_demo.close()
+            if demo_row is None:
+                _fail("unknown project")
+            return {
+                "project_id": demo_row["id"],
+                "project_name": demo_row["name"],
+                "created_at": str(demo_row["created_at"]),
+            }
         project_id_resolved = await _project_id_for_key(key)
         if project_id is not None and project_id != project_id_resolved:
             _fail("unknown project")
@@ -548,4 +658,4 @@ mcp = build_mcp_server()
 # host lifespan in main.py. Default path "/mcp" + Mount("/", ...) => /mcp.
 mcp_app = mcp.streamable_http_app()
 
-logger.info("Oxly MCP initialised (Phase 4: 6 project-scoped read-only tools)")
+logger.info("Oxly MCP initialised (Phase 5: 6 project-scoped read-only tools)")

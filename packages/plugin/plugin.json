@@ -2,13 +2,13 @@
   "name": "oxly",
   "version": "0.1.0-alpha",
   "displayName": "Oxly — Chrome DevTools for AI Agents",
-  "description": "Trace, cost, and security observability for AI agents. Phase 4: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI + submission-ready manifests.",
-  "phase": 4,
+  "description": "Trace, cost, and security observability for AI agents. Phase 5: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI + submission-ready manifests. Superset of Phase 4 with consistent pagination (total/limit/offset), strict validation, and full OpenAPI tool docs.",
+  "phase": 5,
   "mcp": {
     "endpoint": "/mcp",
     "transport": "streamable-http",
     "version": "2025-06-18",
-    "note": "Phase 4 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok. query_traces validates status OK/ERROR; query_security_alerts supports limit/offset; get_trace/get_span/whoami accept optional project_id that must match."
+    "note": "Phase 5 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok. query_traces/query_security_alerts return total + limit/offset echo (count kept on alerts); status/severity/interval validated case-insensitively; get_trace reports true total span_count with 200-span cap + spans_truncated; cost_summary validates start_date <= end_date; DEMO_MODE allows keyless calls with explicit project_id."
   },
   "ui": {
     "devPath": "/plugin/ui",
@@ -30,7 +30,7 @@
     "note": "Placeholder links until the hosted docs site ships; submission reviewers follow these URLs."
   },
   "rateLimits": {
-    "note": "MCP shares the API 100 req/min per-IP limiter; tools clamp limit/offset server-side."
+    "note": "MCP shares the API 100 req/min per-IP limiter; tools clamp limit/offset server-side (50 traces, 100 alerts). Back off on 429."
   },
   "homepage": "https://github.com/oxly/oxly"
 }

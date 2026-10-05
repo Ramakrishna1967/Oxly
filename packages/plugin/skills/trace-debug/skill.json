@@ -1,7 +1,7 @@
 {
   "name": "trace-debug",
   "version": "0.1.0-alpha",
-  "description": "Debug a failing agent run: whoami, query_traces, get_trace, get_span (Phase 4).",
-  "phase": 4,
+  "description": "Debug a failing agent run: whoami, query_traces, get_trace, get_span (Phase 5).",
+  "phase": 5,
   "entry": "SKILL.md"
 }

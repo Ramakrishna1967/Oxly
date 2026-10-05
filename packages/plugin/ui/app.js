@@ -1,4 +1,4 @@
-// Phase 4 status UI. Pings same-origin health + manifest + openapi (dev serves all).
+// Phase 5 status UI. Pings same-origin health + manifest + openapi (dev serves all).
 function setText(id, value) {
   var el = document.getElementById(id);
   if (el) el.textContent = value;
@@ -52,7 +52,7 @@ fetch("/mcp", {
     params: {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "plugin-ui", version: "4" },
+      clientInfo: { name: "plugin-ui", version: "5" },
     },
   }),
 })

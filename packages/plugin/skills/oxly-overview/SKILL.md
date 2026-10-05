@@ -1,4 +1,4 @@
-# Oxly Overview (Phase 4)
+# Oxly Overview (Phase 5)
 
 Oxly is trace / span observability for AI agents, exposed to assistants
 through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
@@ -58,7 +58,19 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
   project (no cross-project oracle).
 - `unknown severity|interval|status '...'` — with the valid values listed.
 
-## Phase 4 notes
+## Phase 5 notes
+
+- Pagination: `query_traces` returns `total` + echoed `limit`/`offset`
+  (max 50); `query_security_alerts` returns `total` + `count` + echoed
+  `limit`/`offset` (max 100).
+- `get_trace` reports true total `span_count` (separate COUNT query),
+  `spans` capped at 200 with `spans_truncated` flag.
+- `cost_summary` validates `start_date <= end_date` and rejects
+  non-integer timestamps; `interval`/`status`/`severity` validated
+  case-insensitively.
+- `whoami` supports DEMO_MODE keyless calls with explicit `project_id`.
+
+## Phase 4 notes (still applies)
 
 - Pagination: `query_traces` and `query_security_alerts` accept `offset`;
   clamp `limit` server-side (50 traces, 100 alerts).
