@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Oxly Plugin — Phase 5</title>
+    <title>Oxly Plugin — Phase 6</title>
     <link rel="stylesheet" href="./styles.css" />
     <!--
       Production: this directory is hosted at the stable HTTPS origin
@@ -14,7 +14,7 @@
   </head>
   <body>
     <main>
-      <h1>Oxly Plugin — Phase 5 (superset of Phase 4)</h1>
+      <h1>Oxly Plugin — Phase 6 (superset of Phase 5, Phase 4)</h1>
       <p>
         MCP endpoint: <code id="mcp">/mcp</code> (Streamable HTTP, 6
         project-scoped read-only tools).
@@ -61,6 +61,24 @@
           <code>spans_truncated</code> flag and true total
           <code>span_count</code>. <code>cost_summary</code> rejects
           <code>start_date &gt; end_date</code>.
+        </p>
+      </section>
+      <section aria-label="Operations">
+        <h2>Phase 6 operations</h2>
+        <p>
+          <code>get_trace</code> pages spans via <code>span_limit</code>
+          (default 200, max 200) + <code>span_offset</code> (default 0):
+          walk large traces with <code>span_offset=0,200,400…</code> until
+          <code>spans_truncated=false</code>. The trace header
+          (<code>start_time</code>/<code>end_time</code>/<code>status</code>)
+          is stable across pages. Discovery docs
+          (<code>/plugin/plugin.json</code>, <code>/plugin/mcp.json</code>,
+          <code>/plugin/openapi.json</code> + both
+          <code>.well-known</code> aliases) are cacheable
+          (<code>Cache-Control: public, max-age=300</code>) and carry
+          <code>X-Oxly-Plugin-Phase: 6</code>. MCP shares the API
+          100 req/min per-IP limiter — back off on 429
+          (<code>retry_after</code> seconds).
         </p>
       </section>
       <section aria-label="Dashboard">

@@ -147,32 +147,54 @@ def create_app() -> FastAPI:
     plugin_json = PLUGIN_DIR / "plugin.json"
     mcp_json = PLUGIN_DIR / "mcp.json"
     openapi_json = PLUGIN_DIR / "openapi.json"
+    # Phase 6: plugin discovery docs are immutable within a release —
+    # cacheable for 5 minutes with an explicit phase header for ops.
+    _plugin_cache_headers = {
+        "Cache-Control": "public, max-age=300",
+        "X-Oxly-Plugin-Phase": "6",
+    }
     if plugin_json.is_file():
 
         @app.get("/plugin/plugin.json", include_in_schema=False)
         async def plugin_manifest():
-            return FileResponse(plugin_json, media_type="application/json")
+            return FileResponse(
+                plugin_json,
+                media_type="application/json",
+                headers=_plugin_cache_headers,
+            )
 
         @app.get("/.well-known/oxly-plugin.json", include_in_schema=False)
         async def plugin_well_known():
-            return FileResponse(plugin_json, media_type="application/json")
+            return FileResponse(
+                plugin_json,
+                media_type="application/json",
+                headers=_plugin_cache_headers,
+            )
 
         @app.get("/.well-known/ai-plugin.json", include_in_schema=False)
         async def plugin_well_known_legacy():
             # Phase 4: ChatGPT classic discovery alias for submission reviewers.
-            return FileResponse(plugin_json, media_type="application/json")
+            return FileResponse(
+                plugin_json,
+                media_type="application/json",
+                headers=_plugin_cache_headers,
+            )
 
     if mcp_json.is_file():
 
         @app.get("/plugin/mcp.json", include_in_schema=False)
         async def plugin_mcp_config():
-            return FileResponse(mcp_json, media_type="application/json")
+            return FileResponse(
+                mcp_json, media_type="application/json", headers=_plugin_cache_headers
+            )
 
     if openapi_json.is_file():
 
         @app.get("/plugin/openapi.json", include_in_schema=False)
         async def plugin_openapi():
-            return FileResponse(openapi_json, media_type="application/json")
+            return FileResponse(
+                openapi_json, media_type="application/json", headers=_plugin_cache_headers
+            )
 
     if PLUGIN_UI_DIR.is_dir():
         app.mount(

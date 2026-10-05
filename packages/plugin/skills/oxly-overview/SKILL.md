@@ -1,4 +1,4 @@
-# Oxly Overview (Phase 5)
+# Oxly Overview (Phase 6)
 
 Oxly is trace / span observability for AI agents, exposed to assistants
 through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
@@ -22,8 +22,10 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
 - `query_traces(api_key, project_id?, status?, limit?=20, offset?=0)` —
   list traces newest-first with `span_count` (limit max 50).
   `status` in `OK | ERROR` (anything else fails with `unknown status '...'`).
-- `get_trace(trace_id, api_key, project_id?)` — full trace with spans in replay
-  order (max 200 spans, `spans_truncated` flag when capped).
+- `get_trace(trace_id, api_key, project_id?, span_limit?=200, span_offset?=0)` —
+  full trace with spans in replay order, paged (`span_limit` max 200,
+  `span_offset` for pages; `span_count` is the true total,
+  `spans_truncated` flags remaining pages).
 - `get_span(span_id, api_key, project_id?)` — one span: timing, status, service,
   attributes, events.
 - `query_security_alerts(api_key, project_id?, severity?, limit?=25, offset?=0)` —
@@ -58,7 +60,19 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
   project (no cross-project oracle).
 - `unknown severity|interval|status '...'` — with the valid values listed.
 
-## Phase 5 notes
+## Phase 6 notes
+
+- `get_trace` pages spans via `span_limit` (default 200, max 200) +
+  `span_offset` (default 0): walk large traces with
+  `span_offset=0,200,400…` until `spans_truncated=false`. The trace
+  header (`start_time`/`end_time`/`status`) is stable across pages.
+  Blank `trace_id`/`span_id` fail with `unknown trace ''` /
+  `unknown span ''`; negative `start_date`/`end_date` are rejected.
+- Discovery docs are cacheable (`Cache-Control: public, max-age=300`,
+  `X-Oxly-Plugin-Phase: 6`); MCP shares the 100 req/min per-IP
+  limiter (429 carries `retry_after` — back off).
+
+## Phase 5 notes (still applies)
 
 - Pagination: `query_traces` returns `total` + echoed `limit`/`offset`
   (max 50); `query_security_alerts` returns `total` + `count` + echoed

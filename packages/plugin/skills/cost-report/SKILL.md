@@ -1,4 +1,4 @@
-# Cost Report (Phase 5)
+# Cost Report (Phase 6)
 
 Summarise spend and token usage using Oxly's project-scoped, read-only MCP
 tools at `/mcp`. Auth: pass the project's SDK API key (`ak_...`) as `api_key`
@@ -31,7 +31,12 @@ on every call; optional `project_id` must match or the tool fails with
 spend breakdown → `timeseries` for the chart. Narrow with `start_date` /
 `end_date` when the stakeholder asks about a specific window.
 
-## Phase 5 notes
+## Phase 6 notes
+
+- Negative `start_date`/`end_date` are rejected (must be Unix seconds
+  >= 0); `start_date <= end_date` still enforced.
+
+## Phase 5 notes (still applies)
 
 - `start_date`/`end_date` are Unix seconds; `start_date <= end_date`
   enforced, non-integer timestamps rejected with a clear tool error.

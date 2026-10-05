@@ -2,13 +2,13 @@
   "name": "oxly",
   "version": "0.1.0-alpha",
   "displayName": "Oxly — Chrome DevTools for AI Agents",
-  "description": "Trace, cost, and security observability for AI agents. Phase 5: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI + submission-ready manifests. Superset of Phase 4 with consistent pagination (total/limit/offset), strict validation, and full OpenAPI tool docs.",
-  "phase": 5,
+  "description": "Trace, cost, and security observability for AI agents. Phase 6: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI + submission-ready manifests. Superset of Phase 5 with paged get_trace spans (span_limit/span_offset), strict blank-ID and negative-date validation, and cacheable discovery docs.",
+  "phase": 6,
   "mcp": {
     "endpoint": "/mcp",
     "transport": "streamable-http",
     "version": "2025-06-18",
-    "note": "Phase 5 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok. query_traces/query_security_alerts return total + limit/offset echo (count kept on alerts); status/severity/interval validated case-insensitively; get_trace reports true total span_count with 200-span cap + spans_truncated; cost_summary validates start_date <= end_date; DEMO_MODE allows keyless calls with explicit project_id."
+    "note": "Phase 6 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok. query_traces/query_security_alerts return total + limit/offset echo (count kept on alerts); status/severity/interval validated case-insensitively; get_trace pages spans via span_limit (default 200, max 200) + span_offset with span_count as the true total and spans_truncated flag; blank trace_id/span_id rejected; cost_summary validates start_date <= end_date and rejects negative/non-integer timestamps; DEMO_MODE allows keyless calls with explicit project_id."
   },
   "ui": {
     "devPath": "/plugin/ui",
@@ -30,7 +30,17 @@
     "note": "Placeholder links until the hosted docs site ships; submission reviewers follow these URLs."
   },
   "rateLimits": {
-    "note": "MCP shares the API 100 req/min per-IP limiter; tools clamp limit/offset server-side (50 traces, 100 alerts). Back off on 429."
+    "note": "MCP shares the API 100 req/min per-IP limiter (429 with retry_after); tools clamp limit/offset server-side (50 traces, 100 alerts, 200 spans/page). Back off on 429."
+  },
+  "caching": {
+    "note": "Discovery docs (/plugin/plugin.json, /plugin/mcp.json, /plugin/openapi.json + both .well-known aliases) are served with Cache-Control: public, max-age=300 and X-Oxly-Plugin-Phase: 6."
+  },
+  "submission": {
+    "store": "ChatGPT / MCP app-store review",
+    "status": "ready",
+    "support_url": "https://github.com/oxly/oxly/issues",
+    "dataUse": "Read-only observability: tools never create, delete, or ingest data; PII is scrubbed before storage; no cross-project oracle (bad key, mismatched project_id, and out-of-scope ids are indistinguishable).",
+    "checklist": "manifest phase 6 + legal/openapi/rateLimits/caching notes; legacy /.well-known/ai-plugin.json alias; /plugin/openapi.json tool + pagination + error + rate-limit schemas; status UI with live MCP initialize check, dashboard deep links, and Phase 6 ops section; 4-skill pack bumped to phase 6."
   },
   "homepage": "https://github.com/oxly/oxly"
 }

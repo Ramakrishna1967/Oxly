@@ -1,4 +1,4 @@
-# Trace Debug (Phase 5)
+# Trace Debug (Phase 6)
 
 Debug a failing agent run using Oxly's project-scoped, read-only MCP tools
 at `/mcp` (Streamable HTTP). Auth is identical on every call: pass the
@@ -15,9 +15,10 @@ an explicit `project_id` for local exploration only.
    list traces newest-first with `span_count` (limit max 50).
    Use `status="ERROR"` to isolate failing runs (anything else fails with
    `unknown status '...'` listing `OK | ERROR`).
-3. `get_trace(trace_id, api_key, project_id?)` — full trace with spans in replay order
-   (max 200 spans; `spans_truncated=true` when capped — fall back to
-   `query_traces` + targeted `get_span` calls for the remainder).
+3. `get_trace(trace_id, api_key, project_id?, span_limit?=200, span_offset?=0)` —
+   full trace with spans in replay order (paged; `span_count` is the true
+   total, `spans_truncated=true` when pages remain — advance `span_offset`
+   by `span_limit` until `spans_truncated=false`).
 4. `get_span(span_id, api_key, project_id?)` — one span: timing (`start_time`/`end_time`
    are nanoseconds, `duration_ms` derived), `status`, `service_name`,
    `attributes` (model, tokens), `events`.
@@ -36,7 +37,12 @@ an explicit `project_id` for local exploration only.
 - `unknown trace` / `unknown span` — id not found *or* not in the key's
   project. Never confirm whether an id exists in another project.
 
-## Phase 5 notes
+## Phase 6 notes
+
+- `get_trace` spans page via `span_limit`/`span_offset` (echoed);
+  blank `trace_id` fails with `unknown trace ''`.
+
+## Phase 5 notes (still applies)
 
 - `query_traces` returns `total` + echoed `limit`/`offset` (max 50).
 - `get_trace` `span_count` is the true total; `spans_truncated=true`

@@ -1,7 +1,7 @@
 # Copyright 2026 Oxly Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Oxly MCP server (Phase 5: production-hardened project-scoped tools).
+"""Oxly MCP server (Phase 6: operational readiness + large-trace paging).
 
 Exposes a Streamable HTTP MCP endpoint with read-only observability tools:
 
@@ -80,7 +80,7 @@ _VALID_SEVERITIES = ("low", "medium", "high", "critical")
 _VALID_INTERVALS = ("hour", "day", "week")
 _VALID_STATUSES = ("OK", "ERROR")
 
-# Phase 5: consistent pagination caps shared by list tools.
+# Phase 5/6: consistent pagination caps shared by list tools (+ get_trace spans).
 _QUERY_TRACES_MAX_LIMIT = 50
 _QUERY_ALERTS_MAX_LIMIT = 100
 _GET_TRACE_MAX_SPANS = 200
@@ -240,19 +240,22 @@ def _time_bucket_expr(interval: str) -> str:
 
 
 def build_mcp_server() -> MCPServer:
-    """Build a fresh Oxly MCPServer with the Phase 5 read-only toolset.
+    """Build a fresh Oxly MCPServer with the Phase 6 read-only toolset.
 
-    Phase 5 keeps the 6 Phase-2 tools with a consistent pagination and
-    validation contract:
+    Phase 6 is a superset of Phase 5 (consistent pagination and
+    validation contract kept):
     - ``query_traces`` / ``query_security_alerts`` return ``total`` plus
       echoed ``limit``/``offset`` (``count`` kept on alerts for compat);
       ``status``/``severity`` validated case-insensitively; non-integer
       ``limit``/``offset`` rejected with a clear tool error.
     - ``get_trace`` reports the true total span count via a separate
-      COUNT query (``span_count`` is the total, ``spans`` capped at 200
-      with ``spans_truncated`` flag).
-    - ``cost_summary`` validates ``start_date <= end_date`` and rejects
-      non-integer timestamps.
+      COUNT query and pages spans via ``span_limit`` (default 200, max
+      200) + ``span_offset`` (default 0) with echoed values and a
+      ``spans_truncated`` flag. Blank ``trace_id`` is rejected with
+      ``unknown trace`` (no oracle).
+    - ``get_span`` rejects blank ``span_id`` with ``unknown span``.
+    - ``cost_summary`` validates ``start_date <= end_date``, rejects
+      non-integer and negative timestamps.
     - ``get_trace`` / ``get_span`` / ``whoami`` accept an optional
       ``project_id`` that must match the key's project (same no-oracle
       ``unknown project`` contract); ``whoami`` also supports DEMO_MODE
@@ -347,10 +350,24 @@ def build_mcp_server() -> MCPServer:
 
     @server.tool()
     async def get_trace(
-        trace_id: str, api_key: str | None = None, project_id: str | None = None
+        trace_id: str,
+        api_key: str | None = None,
+        project_id: str | None = None,
+        span_limit: int = 200,
+        span_offset: int = 0,
     ) -> dict:
-        """Get one trace with all its spans ordered by start time (replay order)."""
+        """Get one trace with its spans ordered by start time (replay order).
+
+        Spans page via ``span_limit`` (default 200, max 200) + ``span_offset``
+        (default 0); ``span_count`` is always the true total and
+        ``spans_truncated`` is true when spans remain beyond this page.
+        """
         key = _require_api_key(api_key)
+        if not (trace_id or "").strip():
+            _fail("unknown trace ''")
+        span_limit = _coerce_limit(span_limit, 200, _GET_TRACE_MAX_SPANS, "span_limit")
+        span_limit = max(1, min(span_limit, _GET_TRACE_MAX_SPANS))
+        span_offset = _coerce_offset(span_offset)
         scope: str | None = None
         if project_id is not None:
             scope = await _resolve_scope(api_key, project_id)
@@ -358,13 +375,13 @@ def build_mcp_server() -> MCPServer:
         conn = await db.get_connection()
         try:
             async with conn.execute(
-                "SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC LIMIT 201",
+                "SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC LIMIT 1",
                 (trace_id,),
             ) as cursor:
-                rows = list(await cursor.fetchall())
-            if not rows:
+                probe = await cursor.fetchone()
+            if probe is None:
                 _fail("unknown trace")
-            trace_project = rows[0]["project_id"]
+            trace_project = probe["project_id"]
             if scope is not None:
                 if trace_project != scope:
                     _fail("unknown trace")
@@ -374,28 +391,47 @@ def build_mcp_server() -> MCPServer:
                     _fail("unknown trace")
             elif not await verify_project_ownership(conn, "demo", trace_project):
                 _fail("unknown trace")
-            # Phase 5: true total span count (page is capped at 200 + probe row).
+            # Phase 6: true total span count (page served via LIMIT/OFFSET).
             async with conn.execute(
                 "SELECT COUNT(*) FROM spans WHERE trace_id = ?",
                 (trace_id,),
             ) as cursor:
                 count_row = await cursor.fetchone()
-            total_spans = int(count_row[0]) if count_row else len(rows)
+            total_spans = int(count_row[0]) if count_row else 0
+            async with conn.execute(
+                "SELECT * FROM spans WHERE trace_id = ? ORDER BY start_time ASC LIMIT ? OFFSET ?",
+                (trace_id, span_limit, span_offset),
+            ) as cursor:
+                rows = list(await cursor.fetchall())
+            async with conn.execute(
+                "SELECT MIN(start_time) AS tmin,"
+                " MAX(COALESCE(end_time, start_time)) AS tmax,"
+                " SUM(CASE WHEN status = 'ERROR' THEN 1 ELSE 0 END) AS err"
+                " FROM spans WHERE trace_id = ?",
+                (trace_id,),
+            ) as cursor:
+                summary = await cursor.fetchone()
         finally:
             await conn.close()
-        spans = [_span_to_dict(r) for r in rows[:_GET_TRACE_MAX_SPANS]]
-        truncated = total_spans > _GET_TRACE_MAX_SPANS
-        starts = [s["start_time"] for s in spans]
-        ends = [s["end_time"] for s in spans]
-        statuses = {s["status"] for s in spans}
+        spans = [_span_to_dict(r) for r in rows]
+        truncated = span_offset + len(spans) < total_spans
+        tmin = summary["tmin"] if summary and summary["tmin"] is not None else None
+        tmax = summary["tmax"] if summary and summary["tmax"] is not None else tmin
+        err_count = int(summary["err"] or 0) if summary else 0
+        if tmin is None:
+            tmin = spans[0]["start_time"] if spans else 0
+        if tmax is None:
+            tmax = spans[0]["end_time"] if spans else tmin
         return {
             "trace_id": trace_id,
-            "project_id": rows[0]["project_id"],
-            "start_time": min(starts),
-            "end_time": max(ends),
-            "duration_ms": (max(ends) - min(starts)) / 1e6,
-            "status": "ERROR" if "ERROR" in statuses else "OK",
+            "project_id": trace_project,
+            "start_time": tmin,
+            "end_time": tmax,
+            "duration_ms": (tmax - tmin) / 1e6,
+            "status": "ERROR" if err_count > 0 else "OK",
             "span_count": total_spans,
+            "span_limit": span_limit,
+            "span_offset": span_offset,
             "spans_truncated": truncated,
             "spans": spans,
         }
@@ -406,6 +442,8 @@ def build_mcp_server() -> MCPServer:
     ) -> dict:
         """Get a single span by id (arguments, timing, status, events)."""
         key = _require_api_key(api_key)
+        if not (span_id or "").strip():
+            _fail("unknown span ''")
         scope: str | None = None
         if project_id is not None:
             scope = await _resolve_scope(api_key, project_id)
@@ -514,6 +552,10 @@ def build_mcp_server() -> MCPServer:
             _fail(f"unknown interval '{interval}': use one of {', '.join(_VALID_INTERVALS)}")
         start_ts = _coerce_unix_ts(start_date, "start_date")
         end_ts = _coerce_unix_ts(end_date, "end_date")
+        if start_ts is not None and start_ts < 0:
+            _fail(f"unknown start_date '{start_date}': must be Unix seconds >= 0")
+        if end_ts is not None and end_ts < 0:
+            _fail(f"unknown end_date '{end_date}': must be Unix seconds >= 0")
         if start_ts is not None and end_ts is not None and start_ts > end_ts:
             _fail(f"unknown date range '{start_date}..{end_date}': start_date must be <= end_date")
         clauses = ["project_id = ?"]
@@ -658,4 +700,4 @@ mcp = build_mcp_server()
 # host lifespan in main.py. Default path "/mcp" + Mount("/", ...) => /mcp.
 mcp_app = mcp.streamable_http_app()
 
-logger.info("Oxly MCP initialised (Phase 5: 6 project-scoped read-only tools)")
+logger.info("Oxly MCP initialised (Phase 6: 6 project-scoped read-only tools)")

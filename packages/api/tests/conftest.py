@@ -46,8 +46,6 @@ def reset_db():
     yield
     db_module._db = None
     middleware_module._rate_limit_store.clear()
-    yield
-    db_module._db = None
 
 
 @pytest_asyncio.fixture

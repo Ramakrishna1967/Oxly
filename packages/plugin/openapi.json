@@ -3,31 +3,54 @@
   "info": {
     "title": "Oxly Plugin",
     "version": "0.1.0-alpha",
-    "description": "Phase 5 discovery doc: Oxly MCP lives at /mcp (Streamable HTTP, protocol 2025-06-18) with 6 project-scoped read-only tools. REST auth stays on JWT; MCP auth uses the project ak_... key per tool call (DEMO_MODE=true allows keyless calls with explicit project_id). Phase 5 adds consistent pagination (total/limit/offset), strict status/severity/interval validation, and true total span_count on get_trace."
+    "description": "Phase 6 discovery doc: Oxly MCP lives at /mcp (Streamable HTTP, protocol 2025-06-18) with 6 project-scoped read-only tools. REST auth stays on JWT; MCP auth uses the project ak_... key per tool call (DEMO_MODE=true allows keyless calls with explicit project_id). Phase 6 adds paged get_trace spans (span_limit/span_offset), blank-ID and negative-date rejection, Cache-Control (public, max-age=300) + X-Oxly-Plugin-Phase on discovery docs, and documented 429 rate-limit semantics. Superset of Phase 5."
   },
   "servers": [{ "url": "/" }],
   "paths": {
     "/mcp": {
       "post": {
         "summary": "MCP Streamable HTTP endpoint",
-        "description": "JSON-RPC: initialize, notifications/initialized, tools/list (6 tools), tools/call. Pass api_key (ak_...) on every call; optional project_id must match. List tools return total + limit/offset echo; get_trace caps spans at 200 with spans_truncated flag.",
-        "responses": { "200": { "description": "JSON-RPC response or SSE stream" } }
+        "description": "JSON-RPC: initialize, notifications/initialized, tools/list (6 tools), tools/call. Pass api_key (ak_...) on every call; optional project_id must match. List tools return total + limit/offset echo; get_trace pages spans via span_limit/span_offset (span_count is the true total, spans_truncated flags remaining pages). 429 means per-IP rate limit hit — honour retry_after.",
+        "responses": {
+          "200": { "description": "JSON-RPC response or SSE stream" },
+          "429": { "description": "Rate limit exceeded; body carries detail + retry_after (seconds)." }
+        }
       }
     },
     "/plugin/plugin.json": {
-      "get": { "summary": "Canonical plugin manifest", "responses": { "200": { "description": "plugin.json" } } }
+      "get": {
+        "summary": "Canonical plugin manifest",
+        "description": "Cache-Control: public, max-age=300; X-Oxly-Plugin-Phase: 6.",
+        "responses": { "200": { "description": "plugin.json" } }
+      }
     },
     "/plugin/mcp.json": {
-      "get": { "summary": "MCP client config", "responses": { "200": { "description": "mcp.json" } } }
+      "get": {
+        "summary": "MCP client config",
+        "description": "Cache-Control: public, max-age=300; X-Oxly-Plugin-Phase: 6.",
+        "responses": { "200": { "description": "mcp.json" } }
+      }
     },
     "/plugin/openapi.json": {
-      "get": { "summary": "Discovery doc (this file)", "responses": { "200": { "description": "openapi.json" } } }
+      "get": {
+        "summary": "Discovery doc (this file)",
+        "description": "Cache-Control: public, max-age=300; X-Oxly-Plugin-Phase: 6.",
+        "responses": { "200": { "description": "openapi.json" } }
+      }
     },
     "/.well-known/oxly-plugin.json": {
-      "get": { "summary": "Discovery alias (canonical manifest)", "responses": { "200": { "description": "plugin.json" } } }
+      "get": {
+        "summary": "Discovery alias (canonical manifest)",
+        "description": "Cache-Control: public, max-age=300; X-Oxly-Plugin-Phase: 6.",
+        "responses": { "200": { "description": "plugin.json" } }
+      }
     },
     "/.well-known/ai-plugin.json": {
-      "get": { "summary": "Legacy ChatGPT discovery alias", "responses": { "200": { "description": "plugin.json" } } }
+      "get": {
+        "summary": "Legacy ChatGPT discovery alias",
+        "description": "Cache-Control: public, max-age=300; X-Oxly-Plugin-Phase: 6.",
+        "responses": { "200": { "description": "plugin.json" } }
+      }
     },
     "/api/v1/health": {
       "get": { "summary": "API health", "responses": { "200": { "description": "{status, services:{api,sqlite,queue,retention}}" } } }
@@ -51,6 +74,32 @@
           "limit": { "type": "integer" },
           "offset": { "type": "integer" },
           "count": { "type": "integer", "description": "Page size (kept on query_security_alerts for compat; equals len(alerts))." }
+        }
+      },
+      "SpanPagination": {
+        "type": "object",
+        "description": "Phase 6 get_trace span paging: span_count is the true total; span_limit/span_offset are the clamped, echoed inputs; spans_truncated is true when spans remain beyond this page.",
+        "properties": {
+          "span_count": { "type": "integer" },
+          "span_limit": { "type": "integer", "default": 200, "maximum": 200 },
+          "span_offset": { "type": "integer", "default": 0 },
+          "spans_truncated": { "type": "boolean" }
+        }
+      },
+      "RateLimit": {
+        "type": "object",
+        "description": "Phase 6 rate-limit semantics: MCP shares the API 100 req/min per-IP limiter; 429 bodies carry detail + retry_after (seconds).",
+        "properties": {
+          "detail": { "type": "string" },
+          "retry_after": { "type": "integer" }
+        }
+      },
+      "CacheHeaders": {
+        "type": "object",
+        "description": "Phase 6 discovery-doc caching: Cache-Control public, max-age=300 with X-Oxly-Plugin-Phase echo.",
+        "properties": {
+          "Cache-Control": { "type": "string", "enum": ["public, max-age=300"] },
+          "X-Oxly-Plugin-Phase": { "type": "string", "enum": ["6"] }
         }
       },
       "ToolList": {
@@ -83,9 +132,11 @@
         "properties": {
           "trace_id": { "type": "string" },
           "api_key": { "type": "string" },
-          "project_id": { "type": "string" }
+          "project_id": { "type": "string" },
+          "span_limit": { "type": "integer", "default": 200, "maximum": 200, "description": "Phase 6: page size for spans (clamped 1..200)." },
+          "span_offset": { "type": "integer", "default": 0, "description": "Phase 6: span page offset (negative clamps to 0)." }
         },
-        "description": "Returns full trace with spans in replay order (max 200 spans, spans_truncated flag, span_count is the true total)."
+        "description": "Returns trace header (stable across pages) with spans in replay order for the requested page. span_count is the true total; spans_truncated flags remaining pages."
       },
       "GetSpanArgs": {
         "type": "object",
@@ -102,8 +153,8 @@
           "api_key": { "type": "string" },
           "project_id": { "type": "string" },
           "interval": { "type": "string", "enum": ["hour", "day", "week"], "default": "day" },
-          "start_date": { "type": "integer", "description": "Unix seconds; must be <= end_date when both given." },
-          "end_date": { "type": "integer", "description": "Unix seconds." }
+          "start_date": { "type": "integer", "minimum": 0, "description": "Unix seconds >= 0; must be <= end_date when both given." },
+          "end_date": { "type": "integer", "minimum": 0, "description": "Unix seconds >= 0." }
         }
       },
       "ErrorModel": {
@@ -111,8 +162,8 @@
         "description": "No cross-project oracle: bad key, mismatched project_id, and out-of-scope ids are indistinguishable by design.",
         "properties": {
           "unknown_project": { "type": "string", "description": "Bad api_key or mismatched project_id." },
-          "unknown_trace": { "type": "string", "description": "id not found OR not in the key's project." },
-          "unknown_span": { "type": "string", "description": "id not found OR not in the key's project." },
+          "unknown_trace": { "type": "string", "description": "Blank id, id not found, OR id not in the key's project." },
+          "unknown_span": { "type": "string", "description": "Blank id, id not found, OR id not in the key's project." },
           "unknown_status": { "type": "string", "description": "status must be OK | ERROR." },
           "unknown_severity": { "type": "string", "description": "severity must be low | medium | high | critical." },
           "unknown_interval": { "type": "string", "description": "interval must be hour | day | week." }

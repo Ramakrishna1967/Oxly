@@ -348,7 +348,7 @@ This entire flow — register, login, create project, send a trace, and read it 
 
 <br>
 
-## ChatGPT / MCP Plugin (Phase 5)
+## ChatGPT / MCP Plugin (Phase 6)
 
 Oxly exposes 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP):
 
@@ -357,8 +357,9 @@ Oxly exposes 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP):
 - **Auth:** pass the project `ak_...` key (from `POST /api/v1/projects`) as `api_key` on every call. An optional `project_id` must match the key's project, otherwise the tool fails with `unknown project` (bad key and wrong project are indistinguishable by design). `DEMO_MODE=true` allows keyless calls with an explicit `project_id` for local exploration.
 - **Try it:** MCP Inspector → `http://localhost:8000/mcp` → `initialize` ok → `tools/list` → 6 tools. Manifest at `/plugin/plugin.json` (also `/.well-known/oxly-plugin.json` + legacy `/.well-known/ai-plugin.json`), discovery doc at `/plugin/openapi.json`, client config at `/plugin/mcp.json`, status UI at `/plugin/ui/`.
 - **Skills:** `oxly-overview` (tool index) · `trace-debug` (failing-run workflow) · `security-triage` (alert queue) · `cost-report` (spend + timeseries) under `packages/plugin/skills/`.
+- **Phase 6 operations:** `get_trace` pages spans via `span_limit`/`span_offset` (`span_count` is the true total, `spans_truncated` flags remaining pages, header stable across pages); blank `trace_id`/`span_id` and negative `cost_summary` dates rejected; discovery docs cacheable (`Cache-Control: public, max-age=300` + `X-Oxly-Plugin-Phase: 6`); 429 rate-limit semantics documented; `plugin.json` carries `caching` + `submission` (store checklist) blocks.
 - **Phase 5 consistency:** list tools return `total` + echoed `limit`/`offset` (`count` kept on alerts); `get_trace` reports true total `span_count` (200-span cap + `spans_truncated`); `cost_summary` validates `start_date <= end_date`; `status`/`severity`/`interval` validated case-insensitively; non-integer `limit`/`offset`/timestamps rejected with clear tool errors. Superset of Phase 4 (`query_traces(status OK|ERROR)`, alerts `limit`/`offset` paging, optional matching `project_id` on point lookups).
-- **Verify:** `pytest packages/api/tests/test_mcp_phase5.py` (consistency + discovery) and `test_mcp_phase4.py` (forward-compatible shell + consistency) and `test_mcp_phase3.py` (skill pack + manifest + UI) and `test_mcp_phase2.py` (scoping + cross-project isolation) and `test_mcp_phase0.py` (shell + endpoint). See `packages/plugin/README.md` and `packages/plugin/skills/oxly-overview/SKILL.md` for tool reference.
+- **Verify:** `pytest packages/api/tests/test_mcp_phase6.py` (paging + ops + submission) and `test_mcp_phase5.py` (consistency + discovery) and `test_mcp_phase4.py` (forward-compatible shell + consistency) and `test_mcp_phase3.py` (skill pack + manifest + UI) and `test_mcp_phase2.py` (scoping + cross-project isolation) and `test_mcp_phase0.py` (shell + endpoint). See `packages/plugin/README.md` and `packages/plugin/skills/oxly-overview/SKILL.md` for tool reference.
 
 <br>
 

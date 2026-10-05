@@ -1,4 +1,4 @@
-# Oxly Plugin — Phase 5
+# Oxly Plugin — Phase 6
 
 Plugin shell + live `/mcp` endpoint with 6 project-scoped read-only tools:
 `query_traces`, `get_trace`, `get_span`, `query_security_alerts`,
@@ -29,7 +29,24 @@ packages/plugin/
 - Host `packages/plugin/ui/` contents at that origin in production (any static host).
   Local dev does not need HTTPS — `/plugin/ui/` is served by the API itself.
 
-## Phase 5 deltas (vs Phase 4)
+## Phase 6 deltas (vs Phase 5)
+
+- `get_trace` pages spans via `span_limit` (default 200, max 200) +
+  `span_offset` (default 0) with echoed values; `span_count` stays the
+  true total, `spans_truncated` flags remaining pages, and the trace
+  header (`start_time`/`end_time`/`status`) is stable across pages.
+- Blank `trace_id`/`span_id` rejected with `unknown trace ''` /
+  `unknown span ''`; `cost_summary` rejects negative timestamps.
+- Ops: discovery docs (`/plugin/plugin.json`, `/plugin/mcp.json`,
+  `/plugin/openapi.json` + both `.well-known` aliases) served with
+  `Cache-Control: public, max-age=300` + `X-Oxly-Plugin-Phase: 6`;
+  `plugin.json` gains `caching` + `submission` (store checklist,
+  support, data-use) blocks; `openapi.json` gains `SpanPagination`,
+  `RateLimit`, `CacheHeaders` schemas + 429 docs.
+- UI: Phase 6 operations section + Phase 5/4-compat markers; skills
+  bumped to phase 6 with Phase 6 notes.
+
+## Phase 5 deltas (vs Phase 4, still applies)
 
 - Consistency: `query_traces` / `query_security_alerts` return `total` +
   echoed `limit`/`offset` (`count` kept on alerts); non-integer
@@ -55,13 +72,15 @@ packages/plugin/
   dashboard deep links (`/traces/{trace_id}`, `/analytics`).
 - Skills: phase 4 bump + pagination / rate-limit / deep-link notes.
 
-## Verify Phase 5
+## Verify Phase 6
 
 1. `uvicorn api.main:app --port 8000` (from `packages/api/src`, or equivalent)
 2. MCP Inspector -> `http://localhost:8000/mcp` -> `initialize` ok, `tools/list` -> 6 tools
-3. `GET /plugin/plugin.json`, `GET /.well-known/oxly-plugin.json`, `GET /.well-known/ai-plugin.json`, `GET /plugin/openapi.json`, `GET /plugin/ui/` -> 200
-4. `pytest packages/api/tests/test_mcp_phase5.py` — phase 5 consistency + discovery
-5. `pytest packages/api/tests/test_mcp_phase4.py packages/api/tests/test_mcp_phase2.py packages/api/tests/test_mcp_phase3.py` — earlier phases unchanged (phase 4 manifest check is forward-compatible `>= 4`)
+3. `GET /plugin/plugin.json`, `GET /.well-known/oxly-plugin.json`, `GET /.well-known/ai-plugin.json`, `GET /plugin/openapi.json`, `GET /plugin/ui/` -> 200 (JSON docs carry `Cache-Control: public, max-age=300` + `X-Oxly-Plugin-Phase: 6`)
+4. `pytest packages/api/tests/test_mcp_phase6.py` — phase 6 paging + ops + submission
+5. `pytest packages/api/tests/test_mcp_phase5.py packages/api/tests/test_mcp_phase4.py packages/api/tests/test_mcp_phase2.py packages/api/tests/test_mcp_phase3.py` — earlier phases unchanged (phase 5 manifest check is forward-compatible `>= 5`)
+
+## Verify Phase 5 (superseded)
 
 ## Verify Phase 4 (superseded)
 

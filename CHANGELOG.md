@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Phase 6 operational readiness: `get_trace` span paging via `span_limit` (default 200, max 200) + `span_offset` with echoed values, stable page-independent header, and true total `span_count`; `plugin.json` phase 6 with `caching` + `submission` (store checklist) blocks; discovery docs served with `Cache-Control: public, max-age=300` + `X-Oxly-Plugin-Phase: 6`; `/plugin/openapi.json` gains `SpanPagination`/`RateLimit`/`CacheHeaders` schemas + 429 docs; status UI Phase 6 operations section; skill pack bumped to phase 6
+- MCP validation Phase 6: blank `trace_id`/`span_id` rejected (`unknown trace ''` / `unknown span ''`), `cost_summary` rejects negative timestamps, `test_mcp_phase5.py` manifest check forward-compatible (`>= 5`)
 - Phase 5 production hardening: `plugin.json` phase 5 (superset of phase 4), full `/plugin/openapi.json` with tool + pagination + error schemas, status UI Phase 5 pagination section, skill pack bumped to phase 5
 - MCP consistency Phase 5: list tools return `total` + echoed `limit`/`offset` (`count` kept on alerts), `get_trace` true total `span_count` via COUNT, `cost_summary` validates `start_date <= end_date`, non-integer `limit`/`offset`/timestamps rejected, `whoami` DEMO_MODE keyless with explicit `project_id`, `test_mcp_phase4.py` manifest check forward-compatible (`>= 4`)
 - Phase 4 plugin hardening: `plugin.json` phase 4 with `legal`/`openapi`/`rateLimits` metadata, legacy `/.well-known/ai-plugin.json` alias, `/plugin/openapi.json` discovery doc, status UI with live MCP `initialize` check + dashboard deep links
