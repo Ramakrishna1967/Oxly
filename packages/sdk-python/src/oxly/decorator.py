@@ -28,7 +28,8 @@ import functools
 import inspect
 import logging
 import reprlib
-from typing import Any, Callable, TypeVar, overload
+from collections.abc import Callable
+from typing import Any, TypeVar, overload
 
 from oxly.context import span_context
 from oxly.models import SpanStatus
@@ -204,7 +205,7 @@ def _wrap_async(
     return wrapper
 
 
-#  Public API 
+#  Public API
 
 
 @overload

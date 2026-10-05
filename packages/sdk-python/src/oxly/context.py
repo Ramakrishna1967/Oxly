@@ -19,31 +19,32 @@ from __future__ import annotations
 
 import contextvars
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from oxly.tracer import Span
 
 logger = logging.getLogger("oxly.context")
 
-#  Configuration 
+#  Configuration
 # Maximum span nesting depth to prevent stack overflow
 _MAX_SPAN_DEPTH = 100
 
-#  Context Variables 
+#  Context Variables
 # These are the two core context vars that propagate across async boundaries.
 
 _trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "oxly_trace_id", default=None
 )
 
-_span_stack_var: contextvars.ContextVar[list["Span"]] = contextvars.ContextVar(
+_span_stack_var: contextvars.ContextVar[list[Span]] = contextvars.ContextVar(
     "oxly_span_stack"
 )
 
 
-#  Public API 
+#  Public API
 
 
 def get_current_trace_id() -> str | None:
@@ -85,7 +86,7 @@ def span_context(span: Span) -> Generator[Span, None, None]:
     """
     # Get or create a new stack for this context (important for async copy-on-write)
     stack = _span_stack_var.get([])
-    
+
     # SECURITY: Check max nesting depth to prevent stack overflow
     if len(stack) >= _MAX_SPAN_DEPTH:
         logger.warning(f"Span nesting depth limit ({_MAX_SPAN_DEPTH}) reached. "
@@ -97,7 +98,7 @@ def span_context(span: Span) -> Generator[Span, None, None]:
         # discard any exception the wrapped function raises.
         yield span
         return
-    
+
     new_stack = stack.copy()
     new_stack.append(span)
     token_stack = _span_stack_var.set(new_stack)

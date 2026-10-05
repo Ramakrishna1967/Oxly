@@ -30,33 +30,33 @@ def instrument() -> None:
         return
 
     try:
-        from crewai import Task, Agent
+        from crewai import Agent, Task
 
         # Patch Task.execute
         original_task_execute = Task.execute
 
         @functools.wraps(original_task_execute)
         def instrumented_task_execute(self: Any, *args: Any, **kwargs: Any) -> Any:
-            from oxly.tracer import Tracer
             from oxly.context import span_context
-            
+            from oxly.tracer import Tracer
+
             # Create a span name, e.g. "crewai.task.write_a_post..."
             short_desc = self.description[:30].replace('\n', ' ').strip() + "..." if self.description else "unknown"
             span_name = f"crewai.task.{short_desc}"
-            
+
             tracer = Tracer.get_tracer()
             span = tracer.start_span(span_name)
-            
+
             try:
                 span.set_attribute("framework", "crewai")
                 span.set_attribute("crewai.task.description", self.description)
                 span.set_attribute("crewai.task.expected_output", getattr(self, "expected_output", ""))
-                
+
                 # Try to capture agent info if assigned
                 agent = getattr(self, "agent", None)
                 if agent and hasattr(agent, "role"):
                     span.set_attribute("crewai.agent.role", agent.role)
-                    
+
                 # The context/inputs provided to the task
                 context = kwargs.get("context", "")
                 if context:
@@ -83,21 +83,21 @@ def instrument() -> None:
 
         @functools.wraps(original_agent_execute_task)
         def instrumented_agent_execute_task(self: Any, *args: Any, **kwargs: Any) -> Any:
-            from oxly.tracer import Tracer
             from oxly.context import span_context
-            
+            from oxly.tracer import Tracer
+
             role = getattr(self, "role", "unknown")
             span_name = f"crewai.agent.{role}"
-            
+
             tracer = Tracer.get_tracer()
             span = tracer.start_span(span_name)
-            
+
             try:
                 span.set_attribute("framework", "crewai")
                 span.set_attribute("crewai.agent.role", role)
                 span.set_attribute("crewai.agent.goal", getattr(self, "goal", ""))
                 span.set_attribute("crewai.agent.backstory", getattr(self, "backstory", ""))
-                
+
                 # The task being executed is usually the first arg
                 task = args[0] if args else kwargs.get("task")
                 if task and hasattr(task, "description"):
@@ -120,7 +120,7 @@ def instrument() -> None:
         # Apply patches
         Task.execute = instrumented_task_execute
         Agent.execute_task = instrumented_agent_execute_task
-        
+
         _instrumented = True
         logger.debug("CrewAI instrumentation applied successfully")
 

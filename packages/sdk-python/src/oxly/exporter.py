@@ -166,7 +166,7 @@ class BatchSpanProcessor:
             start_time = time.monotonic()
             result = self._transport.send(export_dicts)
             latency_ms = (time.monotonic() - start_time) * 1000.0
-            
+
             try:
                 from oxly.metrics import get_metrics
                 get_metrics().record_export(len(export_dicts), latency_ms, result.success)
@@ -174,11 +174,11 @@ class BatchSpanProcessor:
                     get_metrics().increment("export_retries")
             except ImportError:
                 pass
-            
+
             if result.success:
                 self._exported_count += len(export_dicts)
                 logger.debug(
-                    "Exported %d spans (total: %d, latency: %.1fms)", 
+                    "Exported %d spans (total: %d, latency: %.1fms)",
                     len(export_dicts), self._exported_count, latency_ms
                 )
                 return
@@ -211,7 +211,7 @@ class BatchSpanProcessor:
             except ImportError:
                 pass
             return
-            
+
         if not unsent:
             return
 
@@ -269,7 +269,7 @@ class BatchSpanProcessor:
         )
 
 
-#  Module-level singleton 
+#  Module-level singleton
 
 _processor: BatchSpanProcessor | None = None
 _processor_lock = threading.Lock()

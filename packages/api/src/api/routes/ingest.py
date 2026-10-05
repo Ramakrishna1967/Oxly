@@ -90,7 +90,9 @@ async def ingest_traces(
     if not isinstance(spans_input, list):
         spans_input = [spans_input]
 
-    span_queue: asyncio.Queue = request.app.state.span_queue
+    span_queue: asyncio.Queue | None = getattr(request.app.state, "span_queue", None)
+    if span_queue is None:
+        raise HTTPException(status_code=503, detail="Ingest pipeline not ready")
 
     queued_count = 0
     for span_data in spans_input:

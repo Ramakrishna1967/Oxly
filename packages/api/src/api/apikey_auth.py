@@ -18,7 +18,7 @@ import asyncio
 import hashlib
 
 import aiosqlite
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, Header, HTTPException
 from passlib.hash import pbkdf2_sha256 as pwd_context
 
 from api.db import get_db

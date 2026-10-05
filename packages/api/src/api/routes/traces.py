@@ -6,13 +6,13 @@
 from __future__ import annotations
 
 import json
+
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List
 
 from api.db import get_db
 from api.dependencies import get_current_active_user, get_user_project_ids, verify_project_ownership
-from api.schemas import TraceSchema, TraceDetailSchema, SpanSchema, SpanStatus
+from api.schemas import SpanSchema, SpanStatus, TraceDetailSchema
 
 router = APIRouter()
 
@@ -160,7 +160,7 @@ async def get_trace_detail(
         spans=spans,
     )
 
-@router.get("/traces/{trace_id}/replay", response_model=List[SpanSchema])
+@router.get("/traces/{trace_id}/replay", response_model=list[SpanSchema])
 async def get_trace_replay(
     trace_id: str,
     db: aiosqlite.Connection = Depends(get_db),

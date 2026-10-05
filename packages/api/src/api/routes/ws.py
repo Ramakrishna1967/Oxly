@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -16,7 +15,7 @@ router = APIRouter()
 logger = logging.getLogger("oxly.api")
 
 # Connected WebSocket clients
-_connections: Set[WebSocket] = set()
+_connections: set[WebSocket] = set()
 
 
 async def broadcast(message: dict) -> None:
@@ -47,19 +46,19 @@ async def ws_trace_feed(websocket: WebSocket, token: str | None = None):
         token: JWT token can be passed as query parameter ?token=xxx
     """
     # Validate JWT token before accepting connection
-    from api.dependencies import get_current_user
-    from jose import jwt, JWTError
+    from jose import JWTError, jwt
+
     from api.config import settings
-    
+
     try:
         # Try to get token from query param or subprotocol
         if not token:
             token = websocket.query_params.get("token")
-        
+
         if not token and not settings.DEMO_MODE:
             await websocket.close(code=1008, reason="Authentication required")
             return
-        
+
         if token:
             try:
                 payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -74,12 +73,12 @@ async def ws_trace_feed(websocket: WebSocket, token: str | None = None):
         elif not settings.DEMO_MODE:
             await websocket.close(code=1008, reason="Authentication required")
             return
-            
+
     except Exception:
         if not settings.DEMO_MODE:
             await websocket.close(code=1011, reason="Internal error")
             return
-    
+
     await websocket.accept()
     _connections.add(websocket)
     logger.info("WebSocket client connected. Total: %d", len(_connections))

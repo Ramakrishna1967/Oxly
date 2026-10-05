@@ -7,14 +7,12 @@ from __future__ import annotations
 
 import aiosqlite
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from typing import AsyncGenerator
-
-from api.db import get_db
 
 # JWT configuration
 from api.config import settings
+from api.db import get_db
 
 # JWT configuration
 SECRET_KEY = settings.JWT_SECRET_KEY

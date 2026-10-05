@@ -26,28 +26,28 @@ def detect_frameworks() -> dict[str, bool]:
         Dict mapping framework name to availability (True if installed).
     """
     frameworks = {}
-    
+
     # Check for LangGraph
     try:
         import langgraph  # noqa: F401
         frameworks["langgraph"] = True
     except ImportError:
         frameworks["langgraph"] = False
-    
+
     # Check for CrewAI
     try:
         import crewai  # noqa: F401
         frameworks["crewai"] = True
     except ImportError:
         frameworks["crewai"] = False
-    
+
     # Check for AutoGen
     try:
         import autogen  # noqa: F401
         frameworks["autogen"] = True
     except ImportError:
         frameworks["autogen"] = False
-    
+
     return frameworks
 
 
@@ -62,7 +62,7 @@ def auto_instrument() -> dict[str, bool]:
     """
     detected = detect_frameworks()
     results = {}
-    
+
     if detected.get("langgraph"):
         try:
             from oxly.frameworks import langgraph
@@ -72,7 +72,7 @@ def auto_instrument() -> dict[str, bool]:
         except Exception:
             results["langgraph"] = False
             logger.debug("Failed to instrument LangGraph", exc_info=True)
-    
+
     if detected.get("crewai"):
         try:
             from oxly.frameworks import crewai
@@ -82,7 +82,7 @@ def auto_instrument() -> dict[str, bool]:
         except Exception:
             results["crewai"] = False
             logger.debug("Failed to instrument CrewAI", exc_info=True)
-    
+
     if detected.get("autogen"):
         try:
             from oxly.frameworks import autogen
@@ -92,5 +92,5 @@ def auto_instrument() -> dict[str, bool]:
         except Exception:
             results["autogen"] = False
             logger.debug("Failed to instrument AutoGen", exc_info=True)
-    
+
     return results

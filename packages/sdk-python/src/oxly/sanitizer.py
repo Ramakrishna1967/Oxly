@@ -29,7 +29,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-#  Redaction Tokens 
+#  Redaction Tokens
 
 REDACTED_SSN = "[REDACTED_SSN]"
 REDACTED_EMAIL = "[REDACTED_EMAIL]"
@@ -39,7 +39,7 @@ REDACTED_AWS_KEY = "[REDACTED_AWS_KEY]"
 REDACTED_OPENAI_KEY = "[REDACTED_OPENAI_KEY]"
 REDACTED_API_KEY = "[REDACTED_API_KEY]"
 
-#  Compiled Regex Patterns 
+#  Compiled Regex Patterns
 # All patterns are compiled once at module import for maximum performance.
 
 _PATTERNS: list[tuple[re.Pattern[str], str]] = [
@@ -81,7 +81,7 @@ _PATTERNS: list[tuple[re.Pattern[str], str]] = [
     # Phone numbers: Require separators to reduce false positives
     (
         re.compile(
-            r"(?:^|\s|\b)(\+?\d{1,3}[-.\s]?)?" 
+            r"(?:^|\s|\b)(\+?\d{1,3}[-.\s]?)?"
             r"(\(\d{3}\)|\d{3})"
             r"[-.\s]\d{3}"  # Require separators here
             r"[-.\s]\d{4}\b"

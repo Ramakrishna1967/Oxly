@@ -7,6 +7,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Single-process architecture: ingestion, cost/security/storage pipeline, REST, WebSocket, and dashboard static hosting folded into `packages/api` (SQLite + in-process `asyncio.Queue`); Redis/ClickHouse/collector/workers removed
+- `POST /v1/traces` returns 503 `Ingest pipeline not ready` when lifespan hasn't started the span queue (was unhandled 500 `AttributeError`)
+- `GET /api/v1/health` returns `{api, sqlite, queue, retention}` for the dashboard System Status panel
+- `DATABASE_URL` accepts Windows drive-letter URLs and bare/relative paths (resolved against CWD); parent dirs created on init
+- `DEMO_MODE=true` seeds a `demo` user row so `POST /api/v1/projects` no longer 500s on the `user_projects` FK
+- Dashboard Total Cost KPI reads real `/analytics/cost` timeseries instead of hardcoded mock data
+
 ### Security
 - Removed hardcoded Redis password from `redis.conf`; password now injected at runtime via entrypoint script
 - Fixed auth bypass: JWT with non-existent `sub` no longer falls back to demo user

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import threading
 from collections import deque
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -49,7 +49,7 @@ class RingBuffer(Generic[T]):
             if overflow:
                 self._dropped += 1
             self._buffer.append(item)
-            
+
         # Update metrics outside lock to avoid deadlock
         if overflow:
             try:

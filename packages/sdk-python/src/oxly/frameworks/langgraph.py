@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("oxly")
 
@@ -52,17 +53,17 @@ def instrument() -> None:
                 # LangGraph 1.x uses NodeSpec objects
                 if hasattr(node_spec, "runnable") and hasattr(node_spec, "ends"):
                     runnable = node_spec.runnable
-                    
+
                     # Sync
                     if hasattr(runnable, "func") and runnable.func:
                         if not hasattr(runnable.func, "_oxly_instrumented"):
                             runnable.func = _instrument_node(node_name, runnable.func)
-                    
+
                     # Async
                     if hasattr(runnable, "afunc") and runnable.afunc:
                         if not hasattr(runnable.afunc, "_oxly_instrumented"):
                             runnable.afunc = _instrument_node(node_name, runnable.afunc)
-                
+
                 # Fallback for older versions where nodes were direct functions
                 elif not hasattr(node_spec, "_oxly_instrumented") and callable(node_spec):
                     self.nodes[node_name] = _instrument_node(node_name, node_spec)
@@ -94,6 +95,7 @@ def _instrument_node(node_name: str, node_func: Callable) -> Callable:
         Wrapped function that creates spans.
     """
     import asyncio
+
     from oxly.context import span_context
     from oxly.tracer import Tracer
 

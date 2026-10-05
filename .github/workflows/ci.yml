@@ -27,7 +27,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest bandit httpx mypy
         pip install -e ./packages/sdk-python
-        pip install -e ./packages/api || true
+        pip install -e ./packages/api
 
     - name: Lint with flake8
       run: |

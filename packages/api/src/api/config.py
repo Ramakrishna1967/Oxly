@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-#  Security gate: refuse to start without a real secret key 
+#  Security gate: refuse to start without a real secret key
 _INSECURE_DEFAULTS = {"", "your-secret-key-change-in-production", "changeme"}
 if settings.JWT_SECRET_KEY in _INSECURE_DEFAULTS:
     if settings.ENVIRONMENT != "development":

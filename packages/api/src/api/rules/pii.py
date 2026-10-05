@@ -8,7 +8,7 @@ Credit card detection includes Luhn algorithm validation.
 """
 
 import re
-from typing import Callable
+from collections.abc import Callable
 
 
 def _luhn_check(number: str) -> bool:

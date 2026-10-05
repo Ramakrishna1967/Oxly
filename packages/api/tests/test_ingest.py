@@ -51,8 +51,11 @@ async def test_ingest_skips_non_dict_span_without_500ing_batch(client, api_key):
     span in the batch, including the valid ones.
     """
     good_span = {
-        "span_id": "good-1", "trace_id": "trace-1", "name": "ok",
-        "start_time": 1, "end_time": 2,
+        "span_id": "good-1",
+        "trace_id": "trace-1",
+        "name": "ok",
+        "start_time": 1,
+        "end_time": 2,
     }
     response = await client.post(
         "/v1/traces",
@@ -63,3 +66,30 @@ async def test_ingest_skips_non_dict_span_without_500ing_batch(client, api_key):
     body = response.json()
     assert body["status"] == "accepted"
     assert body["spans_queued"] == 1
+
+
+async def test_ingest_without_queue_returns_503(client, api_key, app):
+    """Ingest before lifespan must 503, not 500.
+
+    Regression: ingest.py read request.app.state.span_queue unconditionally,
+    so any app without lifespan (or a startup ordering bug) raised an
+    unhandled AttributeError -> 500. It must return 503 instead.
+    """
+    del app.state.span_queue
+    response = await client.post(
+        "/v1/traces",
+        headers={"X-API-Key": api_key},
+        json={
+            "spans": [
+                {
+                    "span_id": "s1",
+                    "trace_id": "t1",
+                    "name": "r",
+                    "start_time": 1,
+                    "end_time": 2,
+                }
+            ]
+        },
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Ingest pipeline not ready"

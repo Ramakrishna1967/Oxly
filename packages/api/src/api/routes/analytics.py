@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Literal
 
 from api.db import get_db
 from api.dependencies import get_current_active_user, get_user_project_ids, verify_project_ownership
@@ -105,9 +106,9 @@ async def get_cost_timeseries(
         processed[ts]["total_cost"] += cost
         processed[ts]["prompt_tokens"] += row["prompt_tokens"] or 0
         processed[ts]["completion_tokens"] += row["completion_tokens"] or 0
-        
+
     results = list(processed.values())
-    
+
     return {
         "interval": interval,
         "project_id": project_id,

@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.db import get_database
@@ -85,7 +85,7 @@ def create_app() -> FastAPI:
         }
 
     # Import and include routers
-    from api.routes import traces, spans, projects, security, analytics, auth, ws, health, ingest
+    from api.routes import analytics, auth, health, ingest, projects, security, spans, traces, ws
 
     app.include_router(traces.router, prefix="/api/v1", tags=["traces"])
     app.include_router(spans.router, prefix="/api/v1", tags=["spans"])

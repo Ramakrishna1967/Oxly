@@ -9,18 +9,19 @@ schema is initialized on first run.
 
 from __future__ import annotations
 
-import aiosqlite
 import logging
 import re
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
 from urllib.parse import unquote
+
+import aiosqlite
 
 logger = logging.getLogger("oxly.api")
 
 # Default database location logic
+
 from api.config import settings
-import os
 
 # Matches Windows absolute paths with an optional leading slash:
 # "C:/data/oxly.db" or "/C:/data/oxly.db" (the latter comes from
@@ -106,12 +107,12 @@ class Database:
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
+
             # Check current schema version
             cursor = await conn.execute("SELECT MAX(version) FROM _schema_version")
             row = await cursor.fetchone()
             current_version = row[0] if row[0] is not None else 0
-            
+
             if current_version == 0:
                 # Fresh install  apply all migrations
                 await self._apply_migrations(conn, from_version=0)
@@ -286,16 +287,16 @@ class Database:
         """Get a new database connection with correct pragmas."""
         if not self._initialized:
             await self.init_db()
-        
+
         conn = await aiosqlite.connect(self.db_path, timeout=5.0)
         conn.row_factory = aiosqlite.Row
-        
+
         # Enforce pragmas on every new connection
         await conn.execute("PRAGMA foreign_keys=ON")
         await conn.execute("PRAGMA journal_mode=WAL")
         await conn.execute("PRAGMA synchronous=NORMAL")
         await conn.execute("PRAGMA busy_timeout=5000")
-        
+
         return conn
 
 

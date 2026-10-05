@@ -88,7 +88,7 @@ class HttpTransport:
                     f"API keys and traces will be sent unencrypted. "
                     f"Use HTTPS in production!"
                 )
-        
+
         self._url = collector_url.rstrip("/") + "/v1/traces"
         self._api_key = api_key
         self._timeout = timeout_s

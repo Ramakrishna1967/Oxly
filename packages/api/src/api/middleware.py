@@ -5,15 +5,16 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+import asyncio
+import logging
 import os
 import time
 from collections import defaultdict
-from typing import Callable
-import asyncio
-import logging
+from collections.abc import Callable
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("oxly.api.middleware")
 

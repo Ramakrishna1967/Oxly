@@ -17,9 +17,9 @@ from passlib.hash import pbkdf2_sha256 as pwd_context
 from api.config import settings
 from api.db import get_db
 from api.schemas import (
-    UserRegisterRequest,
-    UserLoginRequest,
     TokenResponse,
+    UserLoginRequest,
+    UserRegisterRequest,
     UserSchema,
 )
 
@@ -52,7 +52,7 @@ async def _record_failed_login(email: str, db: aiosqlite.Connection) -> None:
         row = await cursor.fetchone()
     if not row:
         return
-    
+
     attempts = row["failed_login_attempts"] + 1
     if attempts >= _MAX_LOGIN_ATTEMPTS:
         locked_until = datetime.now(timezone.utc) + timedelta(seconds=_LOCKOUT_SECONDS)

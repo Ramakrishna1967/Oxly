@@ -20,7 +20,7 @@ from passlib.hash import pbkdf2_sha256 as pwd_context
 from api.apikey_auth import invalidate_key_cache
 from api.db import get_db
 from api.dependencies import get_current_active_user, verify_project_ownership
-from api.schemas import ProjectSchema, ProjectCreateRequest, ProjectCreateResponse
+from api.schemas import ProjectCreateRequest, ProjectCreateResponse, ProjectSchema
 
 router = APIRouter()
 

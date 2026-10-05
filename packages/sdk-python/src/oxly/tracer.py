@@ -165,7 +165,7 @@ class Span:
         # Record end timing
         self.end_time_ns = wall_clock_ns()
         self._end_mono_ns = monotonic_ns()
-        
+
         # Validate timing: ensure end is after start
         if self.end_time_ns < self.start_time_ns:
             logger.warning(f"Span {self.span_id[:8]}... has end_time before start_time, correcting")
@@ -224,7 +224,7 @@ class Span:
 
 class NoOpSpan:
     """A lightweight stub when the SDK is disabled."""
-    
+
     __slots__ = ("trace_id", "span_id", "parent_span_id", "name", "_ended")
 
     def __init__(self, name: str, parent_span_id: str | None = None) -> None:
@@ -238,10 +238,10 @@ class NoOpSpan:
     def set_status(self, status: SpanStatus, message: str | None = None) -> None: pass
     def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None: pass
     def record_exception(self, exc: BaseException) -> None: pass
-    
+
     def end(self) -> None:
         self._ended = True
-        
+
     def to_model(self) -> SpanModel:
         raise NotImplementedError("NoOpSpan cannot be serialized")
 

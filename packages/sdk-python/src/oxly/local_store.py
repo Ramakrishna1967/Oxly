@@ -17,12 +17,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 import threading
 from contextlib import closing
 from pathlib import Path
-from typing import Any
 
 from oxly.models import SpanModel
 
@@ -255,7 +253,7 @@ class LocalStore:
         return f"LocalStore(db={self._db_path}, unsent={self.unsent_count})"
 
 
-#  Module-level singleton 
+#  Module-level singleton
 
 _store: LocalStore | None = None
 

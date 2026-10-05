@@ -37,23 +37,23 @@ def instrument() -> None:
 
         @functools.wraps(original_generate_reply)
         def instrumented_generate_reply(self: Any, *args: Any, **kwargs: Any) -> Any:
-            from oxly.tracer import Tracer
             from oxly.context import span_context
-            
+            from oxly.tracer import Tracer
+
             agent_name = getattr(self, "name", "unknown")
             span_name = f"autogen.agent.{agent_name}.generate"
-            
+
             tracer = Tracer.get_tracer()
             span = tracer.start_span(span_name)
-            
+
             try:
                 span.set_attribute("framework", "autogen")
                 span.set_attribute("autogen.agent.name", agent_name)
-                
+
                 sys_msg = getattr(self, "system_message", "")
                 if sys_msg:
                     span.set_attribute("autogen.agent.system_message", sys_msg)
-                
+
                 # Try to capture messages context (usually first arg or in kwargs via 'messages')
                 messages = args[0] if args else kwargs.get("messages", [])
                 if messages:
@@ -78,27 +78,27 @@ def instrument() -> None:
 
         @functools.wraps(original_receive)
         def instrumented_receive(self: Any, *args: Any, **kwargs: Any) -> Any:
-            from oxly.tracer import Tracer
             from oxly.context import span_context
-            
+            from oxly.tracer import Tracer
+
             # The message is usually the first arg
             message = args[0] if args else kwargs.get("message", "")
-            
+
             # The sender is usually the second arg
-            sender = args[1] if len(args) > 1 else kwargs.get("sender", None)
+            sender = args[1] if len(args) > 1 else kwargs.get("sender")
             sender_name = getattr(sender, "name", "unknown") if sender else "unknown"
-            
+
             receiver_name = getattr(self, "name", "unknown")
             span_name = f"autogen.msg.{sender_name}_to_{receiver_name}"
-            
+
             tracer = Tracer.get_tracer()
             span = tracer.start_span(span_name)
-            
+
             try:
                 span.set_attribute("framework", "autogen")
                 span.set_attribute("autogen.sender", sender_name)
                 span.set_attribute("autogen.receiver", receiver_name)
-                
+
                 if message:
                     span.set_attribute("input_payload", str(message))
 
@@ -115,7 +115,7 @@ def instrument() -> None:
         # Apply patches
         ConversableAgent.generate_reply = instrumented_generate_reply
         ConversableAgent.receive = instrumented_receive
-        
+
         _instrumented = True
         logger.debug("AutoGen instrumentation applied successfully")
 
