@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Oxly Plugin — Phase 2</title>
+    <title>Oxly Plugin — Phase 3</title>
     <link rel="stylesheet" href="./styles.css" />
     <!--
       Production: this directory is hosted at the stable HTTPS origin
@@ -14,9 +14,50 @@
   </head>
   <body>
     <main>
-      <h1>Oxly Plugin — Phase 2</h1>
-      <p>MCP endpoint: <code id="mcp">/mcp</code> (Streamable HTTP, 6 project-scoped read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami).</p>
-      <p>API health: <code id="health">checking…</code></p>
+      <h1>Oxly Plugin — Phase 3</h1>
+      <p>
+        MCP endpoint: <code id="mcp">/mcp</code> (Streamable HTTP, 6
+        project-scoped read-only tools).
+      </p>
+      <section aria-label="Toolset">
+        <h2>Tools</h2>
+        <ul>
+          <li><code>whoami</code> — confirm which project a key is scoped to</li>
+          <li><code>query_traces</code> — list traces newest-first with span counts</li>
+          <li><code>get_trace</code> — full trace with spans in replay order</li>
+          <li><code>get_span</code> — one span: timing, status, attributes, events</li>
+          <li><code>query_security_alerts</code> — prompt-injection / PII / anomaly alerts</li>
+          <li><code>cost_summary</code> — per-model cost + token timeseries</li>
+        </ul>
+      </section>
+      <section aria-label="Auth model">
+        <h2>Auth</h2>
+        <p>
+          Every tool takes the project SDK key (<code>ak_...</code>) as
+          <code>api_key</code> and scopes to that project. An optional
+          <code>project_id</code> must match. <code>DEMO_MODE=true</code>
+          allows keyless calls with an explicit <code>project_id</code> for
+          local exploration.
+        </p>
+      </section>
+      <section aria-label="Skills">
+        <h2>Skills</h2>
+        <ul>
+          <li><code>oxly-overview</code> — tool index + auth + error model</li>
+          <li><code>trace-debug</code> — failing-run workflow</li>
+          <li><code>security-triage</code> — alert queue workflow</li>
+          <li><code>cost-report</code> — spend workflow</li>
+        </ul>
+      </section>
+      <section aria-label="Live status">
+        <h2>Status</h2>
+        <p>API health: <code id="health">checking…</code></p>
+        <p>Manifest: <code id="manifest">checking…</code></p>
+        <p>
+          Verify: MCP Inspector → <code>http://localhost:8000/mcp</code> →
+          <code>initialize</code> ok → <code>tools/list</code> → 6 tools.
+        </p>
+      </section>
       <script src="./app.js"></script>
     </main>
   </body>

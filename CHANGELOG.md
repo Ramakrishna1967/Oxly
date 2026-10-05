@@ -11,8 +11,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Single-process architecture: ingestion, cost/security/storage pipeline, REST, WebSocket, and dashboard static hosting folded into `packages/api` (SQLite + in-process `asyncio.Queue`); Redis/ClickHouse/collector/workers removed
 - ChatGPT plugin shell (`packages/plugin/`): canonical `plugin.json` served at
   `/plugin/plugin.json` + `/.well-known/oxly-plugin.json`, MCP client config at
-  `/plugin/mcp.json`, placeholder skill (`oxly-overview`) and status UI at
-  `/plugin/ui/` (prod hosts UI at `PLUGIN_UI_ORIGIN`, allow-listed via CSP
+  `/plugin/mcp.json`, 4-skill pack (`oxly-overview`, `trace-debug`,
+  `security-triage`, `cost-report`) and status UI at `/plugin/ui/`
+  (prod hosts UI at `PLUGIN_UI_ORIGIN`, allow-listed via CSP
   `frame-ancestors`/`script-src`)
 - Live MCP endpoint at `/mcp` (Streamable HTTP, protocol `2025-06-18`):
   `initialize` ok, `tools/list` serves the 6 project-scoped read-only tools

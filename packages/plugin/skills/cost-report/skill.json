@@ -1,0 +1,7 @@
+{
+  "name": "cost-report",
+  "version": "0.1.0-alpha",
+  "description": "Summarise spend and tokens per model with timeseries: cost_summary (Phase 3).",
+  "phase": 3,
+  "entry": "SKILL.md"
+}

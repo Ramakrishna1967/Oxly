@@ -1,4 +1,4 @@
-# Oxly Overview (Phase 2)
+# Oxly Overview (Phase 3)
 
 Oxly is trace / span observability for AI agents, exposed to assistants
 through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
@@ -33,12 +33,22 @@ through 6 project-scoped, read-only MCP tools at `/mcp` (Streamable HTTP).
   `interval` in `hour | day | week`; dates are Unix seconds
   (same convention as `GET /api/v1/analytics/cost`).
 
+## Task skills
+
+- `trace-debug` — failing-run workflow
+  (`whoami` → `query_traces` → `get_trace` → `get_span`).
+- `security-triage` — alert queue workflow
+  (`query_security_alerts` → `get_span` → `get_trace`).
+- `cost-report` — spend workflow (`cost_summary` → per-model + timeseries).
+
 ## Typical flows
 
-1. `whoami` → `query_traces` → `get_trace` (debug a failing run).
+1. `whoami` → `query_traces` → `get_trace` (debug a failing run;
+   see `trace-debug`).
 2. `query_security_alerts(severity=high)` → `get_span` (inspect the
-   flagged span's attributes).
-3. `cost_summary(interval=week)` → per-model spend for the status update.
+   flagged span's attributes; see `security-triage`).
+3. `cost_summary(interval=week)` → per-model spend for the status update
+   (see `cost-report`).
 
 ## Errors
 

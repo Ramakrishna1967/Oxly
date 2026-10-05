@@ -1,7 +1,7 @@
 {
   "name": "oxly-overview",
   "version": "0.1.0-alpha",
-  "description": "Overview of the Oxly observability plugin (Phase 2: 6 project-scoped read-only MCP tools).",
-  "phase": 2,
+  "description": "Overview of the Oxly observability plugin (Phase 3: 6 project-scoped read-only MCP tools + trace-debug, security-triage, cost-report skills).",
+  "phase": 3,
   "entry": "SKILL.md"
 }

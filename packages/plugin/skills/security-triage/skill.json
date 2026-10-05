@@ -1,0 +1,7 @@
+{
+  "name": "security-triage",
+  "version": "0.1.0-alpha",
+  "description": "Triage prompt-injection / PII / anomaly alerts: query_security_alerts, get_span, get_trace (Phase 3).",
+  "phase": 3,
+  "entry": "SKILL.md"
+}

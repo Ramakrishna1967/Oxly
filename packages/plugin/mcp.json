@@ -3,7 +3,7 @@
     "oxly": {
       "url": "http://localhost:8000/mcp",
       "transport": "streamable-http",
-      "note": "Phase 2: 6 read-only tools (query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami). Inspector -> http://localhost:8000/mcp -> init ok."
+      "note": "Phase 3: 6 read-only tools (query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami) + 4-skill pack. Inspector -> http://localhost:8000/mcp -> init ok."
     }
   },
   "_comment": "Production clients replace localhost with the deployed API origin, keeping the /mcp path. See packages/plugin/plugin.json for the canonical endpoint."

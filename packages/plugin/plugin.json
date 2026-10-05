@@ -2,13 +2,13 @@
   "name": "oxly",
   "version": "0.1.0-alpha",
   "displayName": "Oxly — Chrome DevTools for AI Agents",
-  "description": "Trace, cost, and security observability for AI agents. Phase 2: 6 project-scoped read-only MCP tools + live /mcp endpoint.",
-  "phase": 2,
+  "description": "Trace, cost, and security observability for AI agents. Phase 3: 6 project-scoped read-only MCP tools + 4-skill pack (overview, trace-debug, security-triage, cost-report) + status UI.",
+  "phase": 3,
   "mcp": {
     "endpoint": "/mcp",
     "transport": "streamable-http",
     "version": "2025-06-18",
-    "note": "Phase 2 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok."
+    "note": "Phase 3 serves 6 read-only tools: query_traces, get_trace, get_span, query_security_alerts, cost_summary, whoami. Inspector must get init ok."
   },
   "ui": {
     "devPath": "/plugin/ui",
@@ -20,6 +20,7 @@
     "mode": "project-api-key",
     "note": "Every MCP tool takes the project's SDK API key (ak_...) as api_key and scopes to that project (explicit project_id must match). DEMO_MODE=true allows keyless calls with explicit project_id for local exploration."
   },
+  "skills": ["oxly-overview", "trace-debug", "security-triage", "cost-report"],
   "wellKnown": "/.well-known/oxly-plugin.json",
   "homepage": "https://github.com/oxly/oxly"
 }
