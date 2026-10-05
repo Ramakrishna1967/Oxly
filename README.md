@@ -406,11 +406,13 @@ The result is the single-process architecture described above — the same featu
 
 ## Known Follow-ups
 
-Documenting these here rather than letting them go unnoticed:
+Previously tracked here, now resolved (verified 2026-10-05, API tests 21 passed):
 
-- **`DATABASE_URL` non-Docker default is broken.** `api/db.py`'s path parser hardcodes `/app/` for the unset default, and for any value that isn't recognized as an absolute path. Two things to watch here: (1) always pass an absolute path, per [Running It](#running-it) above; (2) the parser's "four-slash" branch (`Path("/" + remainder)`) is written for POSIX paths — on Windows, a four-slash value whose remainder includes a drive letter (e.g. `////C:/Users/you/oxly.db`) resolves to `/C:/Users/you/oxly.db`, which SQLite cannot open. On Windows, use three slashes with the drive letter directly after (`sqlite+aiosqlite:///C:/Users/you/oxly.db`) — confirmed working; the four-slash form is for Linux/Mac.
-- **`DEMO_MODE` + create-project 500s.** The synthetic `demo` user has no row in the `users` table, so `POST /api/v1/projects` fails its foreign-key insert into `user_projects` when running under `DEMO_MODE`. Read endpoints are unaffected. Use real registration (documented above) to create projects.
-- **Dashboard system-health widget** (`packages/dashboard/src/pages/Dashboard.tsx`, `lib/types.ts`) still renders "Collector API" / "Redis Stream" / "ClickHouse DB" tiles that no longer correspond to anything the API's `/api/v1/health` returns.
+- ~~**`DATABASE_URL` non-Docker default is broken.**~~ Fixed — `api/db.py` now resolves bare/relative values against `Path.cwd()` (container behavior unchanged since CWD is `/app`), handles Windows drive-letter URLs (`sqlite+aiosqlite:///C:/...`), and creates parent dirs on init.
+- ~~**`DEMO_MODE` + create-project 500s.**~~ Fixed — `init_db()` seeds a `demo` user row when `DEMO_MODE=true`, so `POST /api/v1/projects` no longer fails its `user_projects` FK insert.
+- ~~**Dashboard system-health widget stale.**~~ Fixed — `GET /api/v1/health` now returns `{api, sqlite, queue, retention}` and `Dashboard.tsx` / `lib/types.ts` render those four tiles.
+
+No open follow-ups at this time.
 
 <br>
 

@@ -73,9 +73,17 @@ const Dashboard: React.FC = () => {
 
     const fetchData = async () => {
       try {
-        const response = await apiClient.get("/traces", {
-          params: { project_id: currentProject.id, page_size: 15 }
-        });
+        const [tracesRes, costRes] = await Promise.all([
+          apiClient.get("/traces", {
+            params: { project_id: currentProject.id, page_size: 15 }
+          }),
+          // Cost timeseries may be empty (no LLM usage recorded yet) — never
+          // let it break the trace stats below.
+          apiClient.get("/analytics/cost", {
+            params: { project_id: currentProject.id, interval: "day" }
+          }).catch(() => ({ data: { data: [] } })),
+        ]);
+        const response = tracesRes;
         const items: Trace[] = response.data.items || [];
         setTraces(items);
 
@@ -85,11 +93,15 @@ const Dashboard: React.FC = () => {
         const errors = items.filter((t: Trace) => t.status === "ERROR").length;
         const errRate = items.length > 0 ? (errors / items.length) * 100 : 0;
 
+        // Sum cost across all daily buckets returned by /analytics/cost
+        const buckets: Array<{ total_cost?: number }> = costRes.data?.data || [];
+        const totalCost = buckets.reduce((acc, b) => acc + (b.total_cost || 0), 0);
+
         setStats({
           total,
           avgLatency: avgLat, // Fix: avgLat is already in ms, then UI converts to s
           errorRate: errRate,
-          totalCost: 0.00 // Placeholder for cost engine integration
+          totalCost
         });
       } catch (err) {
         console.error("Dashboard data fetch failed:", err);

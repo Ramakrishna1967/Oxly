@@ -18,6 +18,8 @@ class TestHealth:
         data = response.json()
         assert data["status"] == "healthy"
         assert "version" in data
+        # Contract consumed by Dashboard System Status panel
+        assert set(data["services"]) == {"api", "sqlite", "queue", "retention"}
 
     @pytest.mark.asyncio
     async def test_root_endpoint(self, client):
